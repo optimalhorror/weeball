@@ -1,5 +1,5 @@
 {
-  "name": "weball",
+  "name": "weeball",
   "version": "0.1.0",
   "description": "Semi-stateless smart proxy for AI chatbots",
   "module": "index.ts",
