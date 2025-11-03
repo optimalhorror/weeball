@@ -1,0 +1,52 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+build
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+.nyc_output
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# bun
+bun.lockb
+
+# project planning
+.roadmap
+
+# IntelliJ based IDEs
+.idea
+
+# VS Code
+.vscode
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+*.swp
+*.swo
+*~
