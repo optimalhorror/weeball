@@ -5,8 +5,19 @@
  * No sessions, no sandboxing, no persistence - just basic request forwarding.
  */
 
+// Load from environment (required)
+if (!process.env.PROVIDER_URL) {
+  console.error("ERROR: PROVIDER_URL is required in .env file");
+  process.exit(1);
+}
+if (!process.env.DEFAULT_MODEL) {
+  console.error("ERROR: DEFAULT_MODEL is required in .env file");
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 3000;
-const DEFAULT_PROVIDER_URL = "https://openrouter.ai/api/v1";
+const PROVIDER_URL = process.env.PROVIDER_URL;
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL;
 
 interface ChatCompletionRequest {
   model: string;
@@ -41,54 +52,11 @@ const server = Bun.serve({
         status: 204,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Access-Control-Max-Age": "86400"
         }
       });
-    }
-
-    // Models endpoint (for API key validation)
-    if (url.pathname.endsWith("/models")) {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
-
-      const providerUrl = process.env.PROVIDER_URL || DEFAULT_PROVIDER_URL;
-      const targetUrl = `${providerUrl}/models`;
-
-      try {
-        const providerResponse = await fetch(targetUrl, {
-          method: "GET",
-          headers: {
-            "Authorization": authHeader,
-            "HTTP-Referer": "https://weeball.ai",
-            "X-Title": "Weeball Proxy"
-          }
-        });
-
-        const responseData = await providerResponse.json();
-
-        return new Response(JSON.stringify(responseData), {
-          status: providerResponse.status,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization"
-          }
-        });
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] Models endpoint error:`, error);
-        return new Response(JSON.stringify({ error: "Failed to fetch models" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
     }
 
     // Only handle chat completion endpoints
@@ -112,18 +80,24 @@ const server = Bun.serve({
       // Parse request body
       const body = await req.json() as ChatCompletionRequest;
 
+      // Override model if DEFAULT_MODEL is set
+      const originalModel = body.model;
+      if (DEFAULT_MODEL) {
+        body.model = DEFAULT_MODEL;
+      }
+
       // Log request (for debugging)
       console.log(`[${new Date().toISOString()}] Request:`, {
         method: req.method,
         path: url.pathname,
         model: body.model,
+        originalModel: DEFAULT_MODEL ? originalModel : undefined,
         messageCount: body.messages?.length || 0,
         referer: req.headers.get("Referer") || "none"
       });
 
-      // Determine provider URL (hardcoded for now, will be configurable later)
-      const providerUrl = process.env.PROVIDER_URL || DEFAULT_PROVIDER_URL;
-      const targetUrl = `${providerUrl}/chat/completions`;
+      // Determine provider URL
+      const targetUrl = `${PROVIDER_URL}/chat/completions`;
 
       // Forward request to provider
       const providerResponse = await fetch(targetUrl, {
@@ -187,4 +161,5 @@ const server = Bun.serve({
 });
 
 console.log(`Weeball Phase 0 running on http://localhost:${server.port}`);
-console.log(`Provider URL: ${process.env.PROVIDER_URL || DEFAULT_PROVIDER_URL}`);
+console.log(`Provider URL: ${PROVIDER_URL}`);
+console.log(`Default Model: ${DEFAULT_MODEL}`);
