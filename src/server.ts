@@ -1,8 +1,9 @@
 import type { Config } from "./config/env";
 import { handleChatCompletion } from "./chat-completion";
 import type { PluginProcessor } from "./middleware/plugin-processor";
+import type { Tool } from "./tools/types";
 
-export function createServer(config: Config, pluginProcessor: PluginProcessor) {
+export function createServer(config: Config, pluginProcessor: PluginProcessor, tools: Tool[]) {
   return Bun.serve({
     port: config.PORT,
     async fetch(req) {
@@ -34,7 +35,7 @@ export function createServer(config: Config, pluginProcessor: PluginProcessor) {
         });
       }
 
-      return await handleChatCompletion(req, config, pluginProcessor);
+      return await handleChatCompletion(req, config, pluginProcessor, tools);
     }
   });
 }
