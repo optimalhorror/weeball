@@ -6,6 +6,19 @@ import { parseSSEStream } from "./utils/stream-parser";
 
 let toolCallsEnabled = true;
 
+function makeRequest(url: string, authHeader: string, config: Config, body: any) {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": authHeader,
+      "HTTP-Referer": config.HTTP_REFERER,
+      "X-Title": config.PROXY_TITLE
+    },
+    body: JSON.stringify(body)
+  });
+}
+
 export async function handleChatCompletion(
   req: Request,
   config: Config,
@@ -30,75 +43,24 @@ export async function handleChatCompletion(
     body.model = config.DEFAULT_MODEL;
   }
 
-  const userRequestedStream = body.stream;
-
   if (toolCallsEnabled && tools.length > 0) {
     body.tools = tools.map(t => t.definition);
-    console.log(`[TOOLS] Injecting ${tools.length} tool definitions into request`);
   }
 
   const targetUrl = `${config.PROVIDER_URL}/chat/completions`;
-
-  const providerResponse = await fetch(targetUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": authHeader,
-      "HTTP-Referer": config.HTTP_REFERER,
-      "X-Title": config.PROXY_TITLE
-    },
-    body: JSON.stringify(body)
-  });
+  let providerResponse = await makeRequest(targetUrl, authHeader, config, body);
 
   if (!providerResponse.ok && body.tools) {
-    console.error("[TOOLS] Tool calls not supported by model, disabling");
-    console.error(`[TOOLS] toolCallsEnabled: true -> false`);
+    console.error("[TOOLS] Tool calls not supported by model, retrying without tools");
     toolCallsEnabled = false;
     delete body.tools;
-
-    const retryResponse = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-        "HTTP-Referer": config.HTTP_REFERER,
-        "X-Title": config.PROXY_TITLE
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (body.stream) {
-      return new Response(retryResponse.body, {
-        status: retryResponse.status,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-          "Access-Control-Allow-Methods": config.CORS_METHODS,
-          "Access-Control-Allow-Headers": config.CORS_HEADERS,
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive"
-        }
-      });
-    }
-
-    const retryData = await retryResponse.json() as ChatCompletionResponse;
-    return new Response(JSON.stringify(retryData), {
-      status: retryResponse.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-        "Access-Control-Allow-Methods": config.CORS_METHODS,
-        "Access-Control-Allow-Headers": config.CORS_HEADERS
-      }
-    });
+    providerResponse = await makeRequest(targetUrl, authHeader, config, body);
   }
 
   if (body.stream && toolCallsEnabled && tools.length > 0) {
-    console.log(`[TOOLS] Parsing stream to detect tool calls`);
     const streamResult = await parseSSEStream(providerResponse.body!);
 
     if (streamResult.passthrough) {
-      console.log(`[TOOLS] Content detected, passing through stream`);
       const encoder = new TextEncoder();
 
       const stream = new ReadableStream({
@@ -138,9 +100,7 @@ export async function handleChatCompletion(
     }
 
     if (streamResult.isToolCall) {
-      console.log(`[TOOLS] Tool calls detected in stream`);
       const toolCalls = streamResult.toolCalls!;
-      console.log(`[TOOLS] LLM requested ${toolCalls.length} tool call(s)`);
       const toolResults = [];
 
       for (const toolCall of toolCalls) {
@@ -148,9 +108,7 @@ export async function handleChatCompletion(
         if (tool) {
           try {
             const args = JSON.parse(toolCall.function.arguments);
-            console.log(`[TOOLS] Executing: ${toolCall.function.name}(${JSON.stringify(args)})`);
             const result = await tool.executor(args);
-            console.log(`[TOOLS] Result: ${result}`);
             toolResults.push({
               role: "tool",
               tool_call_id: toolCall.id,
@@ -169,7 +127,6 @@ export async function handleChatCompletion(
 
       const secondRoundBody = {
         ...body,
-        stream: userRequestedStream,
         messages: [
           ...body.messages,
           streamResult.assistantMessage,
@@ -177,19 +134,7 @@ export async function handleChatCompletion(
         ]
       };
 
-      console.log(`[TOOLS] Sending tool results back to LLM (${toolResults.length} results)`);
-      console.log(`[TOOLS] Second round stream=${userRequestedStream}`);
-
-      const secondRoundResponse = await fetch(targetUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": authHeader,
-          "HTTP-Referer": config.HTTP_REFERER,
-          "X-Title": config.PROXY_TITLE
-        },
-        body: JSON.stringify(secondRoundBody)
-      });
+      const secondRoundResponse = await makeRequest(targetUrl, authHeader, config, secondRoundBody);
 
       return new Response(secondRoundResponse.body, {
         status: secondRoundResponse.status,
@@ -204,7 +149,6 @@ export async function handleChatCompletion(
       });
     }
 
-    console.log(`[TOOLS] No tool calls in stream, passing through`);
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
@@ -244,12 +188,8 @@ export async function handleChatCompletion(
 
   const responseData = await providerResponse.json() as ChatCompletionResponse;
 
-  console.log(`[TOOLS] LLM response finish_reason: ${responseData.choices?.[0]?.finish_reason}`);
-  console.log(`[TOOLS] LLM response has tool_calls: ${!!responseData.choices?.[0]?.message?.tool_calls}`);
-
   const toolCalls = responseData.choices?.[0]?.message?.tool_calls;
   if (toolCalls && toolCalls.length > 0) {
-    console.log(`[TOOLS] LLM requested ${toolCalls.length} tool call(s)`);
     const toolResults = [];
 
     for (const toolCall of toolCalls) {
@@ -257,9 +197,7 @@ export async function handleChatCompletion(
       if (tool) {
         try {
           const args = JSON.parse(toolCall.function.arguments);
-          console.log(`[TOOLS] Executing: ${toolCall.function.name}(${JSON.stringify(args)})`);
           const result = await tool.executor(args);
-          console.log(`[TOOLS] Result: ${result}`);
           toolResults.push({
             role: "tool",
             tool_call_id: toolCall.id,
@@ -286,18 +224,7 @@ export async function handleChatCompletion(
       ]
     };
 
-    console.log(`[TOOLS] Sending tool results back to LLM (${toolResults.length} results)`);
-
-    const secondRoundResponse = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-        "HTTP-Referer": config.HTTP_REFERER,
-        "X-Title": config.PROXY_TITLE
-      },
-      body: JSON.stringify(secondRoundBody)
-    });
+    const secondRoundResponse = await makeRequest(targetUrl, authHeader, config, secondRoundBody);
 
     const finalResponse = await secondRoundResponse.json() as ChatCompletionResponse;
     return new Response(JSON.stringify(finalResponse), {

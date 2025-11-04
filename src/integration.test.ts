@@ -3,6 +3,7 @@ import { createServer } from "./server";
 import { PluginProcessor } from "./middleware/plugin-processor";
 import type { Config } from "./config/env";
 import type { ContextPlugin } from "./plugins/types";
+import type { Tool } from "./tools/types";
 
 const mockConfig: Config = {
   PORT: 3001,
@@ -60,7 +61,7 @@ describe("Integration: Full passthrough flow", () => {
     const processor = new PluginProcessor();
     processor.load([requestPlugin]);
 
-    const server = createServer(mockConfig, processor);
+    const server = createServer(mockConfig, processor, []);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
@@ -108,7 +109,7 @@ describe("Integration: Full passthrough flow", () => {
     const processor = new PluginProcessor();
     processor.load([]);
 
-    const server = createServer(mockConfig, processor);
+    const server = createServer(mockConfig, processor, []);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
@@ -130,6 +131,197 @@ describe("Integration: Full passthrough flow", () => {
     const data: any = await response.json();
 
     expect(data.choices[0].message.content).toBe("Raw LLM response");
+
+    server.stop();
+  });
+
+  test("tool call: request → LLM requests tool → execute tool → LLM final response", async () => {
+    const mockTool: Tool = {
+      definition: {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get weather for a location",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "City name"
+              }
+            },
+            required: ["location"]
+          }
+        }
+      },
+      executor: async (args: any) => {
+        return `Weather in ${args.location}: Sunny, 25°C`;
+      }
+    };
+
+    const mockToolCallResponse = {
+      choices: [{
+        message: {
+          role: "assistant",
+          content: null,
+          tool_calls: [{
+            id: "call_123",
+            type: "function",
+            function: {
+              name: "get_weather",
+              arguments: JSON.stringify({ location: "London" })
+            }
+          }]
+        },
+        finish_reason: "tool_calls"
+      }]
+    };
+
+    const mockFinalResponse = {
+      choices: [{
+        message: {
+          role: "assistant",
+          content: "The weather in London is sunny with 25°C!"
+        }
+      }]
+    };
+
+    let callCount = 0;
+    const fetchMock = mock((_url: string, options: any) => {
+      callCount++;
+      const requestBody = JSON.parse(options.body);
+
+      if (callCount === 1) {
+        expect(requestBody.tools).toBeDefined();
+        expect(requestBody.tools.length).toBe(1);
+        expect(requestBody.tools[0].function.name).toBe("get_weather");
+        return Promise.resolve(
+          new Response(JSON.stringify(mockToolCallResponse), { status: 200 })
+        );
+      }
+
+      if (callCount === 2) {
+        expect(requestBody.messages.length).toBe(3);
+        expect(requestBody.messages[1].role).toBe("assistant");
+        expect(requestBody.messages[1].tool_calls).toBeDefined();
+        expect(requestBody.messages[2].role).toBe("tool");
+        expect(requestBody.messages[2].content).toContain("Weather in London");
+        return Promise.resolve(
+          new Response(JSON.stringify(mockFinalResponse), { status: 200 })
+        );
+      }
+
+      throw new Error("Unexpected fetch call");
+    });
+
+    globalThis.fetch = fetchMock as any;
+
+    const processor = new PluginProcessor();
+    processor.load([]);
+
+    const server = createServer(mockConfig, processor, [mockTool]);
+
+    const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer test-key",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "test",
+        messages: [
+          { role: "user", content: "What's the weather in London?" }
+        ]
+      })
+    });
+
+    const response = await server.fetch(request);
+    expect(response.status).toBe(200);
+
+    const data: any = await response.json();
+
+    expect(data.choices[0].message.content).toBe("The weather in London is sunny with 25°C!");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    server.stop();
+  });
+
+  test("tool disabled: model doesn't support tools → retry without tools", async () => {
+    const mockTool: Tool = {
+      definition: {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get weather",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        }
+      },
+      executor: async () => "Should not be called"
+    };
+
+    const mockSuccessResponse = {
+      choices: [{
+        message: {
+          role: "assistant",
+          content: "Response without tools"
+        }
+      }]
+    };
+
+    let callCount = 0;
+    const fetchMock = mock((_url: string, options: any) => {
+      callCount++;
+      const requestBody = JSON.parse(options.body);
+
+      if (callCount === 1) {
+        expect(requestBody.tools).toBeDefined();
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: "Tools not supported" }), { status: 400 })
+        );
+      }
+
+      if (callCount === 2) {
+        expect(requestBody.tools).toBeUndefined();
+        return Promise.resolve(
+          new Response(JSON.stringify(mockSuccessResponse), { status: 200 })
+        );
+      }
+
+      throw new Error("Unexpected fetch call");
+    });
+
+    globalThis.fetch = fetchMock as any;
+
+    const processor = new PluginProcessor();
+    processor.load([]);
+
+    const server = createServer(mockConfig, processor, [mockTool]);
+
+    const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer test-key",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "test",
+        messages: [
+          { role: "user", content: "Hello" }
+        ]
+      })
+    });
+
+    const response = await server.fetch(request);
+    expect(response.status).toBe(200);
+
+    const data: any = await response.json();
+
+    expect(data.choices[0].message.content).toBe("Response without tools");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
 
     server.stop();
   });
