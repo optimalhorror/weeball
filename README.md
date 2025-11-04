@@ -4,34 +4,36 @@ A minimal LLM proxy with a plugin system for request transformation.
 
 ## What It Does
 
-Weeball sits between your chat client and LLM providers. It intercepts requests, runs them through plugins that can modify content, then forwards to the provider.
-
-**Current state:** Request plugins only. Response processing removed for simplicity (streaming support takes priority).
+Weeball sits between your chat client and LLM providers. It intercepts requests, runs them through plugins that can modify content, executes tool calls locally, then forwards to the provider.
 
 ## Features
 
 - **OpenAI-compatible API** - `/chat/completions` endpoint
 - **Plugin system** - Transform requests before they hit the LLM
+- **Tool calling** - Execute functions locally, handle multi-round conversations
+- **Smart streaming** - Early detection for minimal latency on content responses
 - **Provider agnostic** - Works with any OpenAI-compatible API
-- **Streaming support** - Passes through streaming responses untouched
 - **Model override** - Force all requests to use a specific model
 - **Zero dependencies** - Pure Bun/TypeScript
 
 ## Architecture
 
 ```
-Client → Weeball → Plugins → Provider → Response
+Client → Weeball → Plugins → Provider
+                 ↓           ↓
+               Tools ← Tool Calls
 ```
 
 **Components:**
 - `index.ts` - Entry point, wires everything together
-- `src/server.ts` - HTTP routing (OPTIONS, 404, 405, chat completions)
-- `src/chat-completion.ts` - Core handler (auth, plugin processing, proxy)
+- `src/server.ts` - HTTP routing
+- `src/chat-completion.ts` - Core handler (auth, plugins, tools, streaming)
 - `src/middleware/plugin-processor.ts` - Plugin orchestration
-- `src/plugins/loader.ts` - Scans and loads plugins from filesystem
+- `src/plugins/loader.ts` - Loads plugins from `/plugins`
+- `src/tools/loader.ts` - Loads tools from `/tools`
+- `src/utils/stream-parser.ts` - Smart streaming with early detection
 - `src/config/env.ts` - Environment configuration
-- `src/types.ts` - TypeScript interfaces for OpenAI API
-- `src/plugins/types.ts` - Plugin interface
+- `src/types.ts` - OpenAI API types
 
 **Plugin interface:**
 ```typescript
@@ -77,10 +79,13 @@ PROXY_TITLE=Weeball Proxy
 - `PROVIDER_URL` - LLM provider endpoint (e.g., OpenRouter, OpenAI)
 - `DEFAULT_MODEL` - Model to use for all requests
 
-**Optional:**
-- `PORT` - Server port (default: 3000)
-- `CORS_*` - CORS configuration
-- `HTTP_REFERER` / `PROXY_TITLE` - Sent to provider (may be required by some providers)
+**Optional (with defaults):**
+- `PORT` - Server port (default: `3000`)
+- `CORS_ORIGIN` - CORS allowed origins (default: `*`)
+- `CORS_METHODS` - CORS allowed methods (default: `POST, OPTIONS`)
+- `CORS_HEADERS` - CORS allowed headers (default: `Content-Type, Authorization`)
+- `HTTP_REFERER` - Referer header sent to provider (default: `https://weeball.ai`)
+- `PROXY_TITLE` - Custom title header sent to provider (default: `Weeball Proxy`)
 
 ## Writing Plugins
 
@@ -114,13 +119,47 @@ Plugins run in alphabetical order. Name them with prefixes if order matters:
 - `02-format.ts`
 - `99-final-check.ts`
 
+## Writing Tools
+
+Create two files in `/tools`:
+
+**Definition (`hello_world.json`):**
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "hello_world",
+    "description": "Says hello to someone by name",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the person to greet"
+        }
+      },
+      "required": ["name"]
+    }
+  }
+}
+```
+
+**Executor (`hello_world.ts`):**
+```typescript
+export default async function(args: { name: string }): Promise<string> {
+  return `Hello, ${args.name}!`;
+}
+```
+
+Tools are automatically loaded and added to requests. When the LLM calls a tool, Weeball executes it locally and sends the result back for a final response.
+
 ## Testing
 
 ```bash
 bun test
 ```
 
-Runs integration tests that verify the full request → plugin → proxy → response flow.
+Tests cover plugin processing, tool calling, streaming, and error handling.
 
 ## Usage with Chat Clients
 
@@ -144,10 +183,10 @@ curl http://localhost:3000/v1/chat/completions \
 
 ## Stats
 
-- **207 lines of code** (excluding tests)
-- **7 source files**
+- **~350 lines of code** (excluding tests)
+- **10 source files**
 - **Zero runtime dependencies**
-- **2 integration tests**
+- **4 integration tests**
 
 ## Tech Stack
 

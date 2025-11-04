@@ -10,7 +10,7 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
-  const required = ["PORT", "PROVIDER_URL", "DEFAULT_MODEL", "CORS_ORIGIN", "CORS_METHODS", "CORS_HEADERS", "HTTP_REFERER", "PROXY_TITLE"];
+  const required = ["PROVIDER_URL", "DEFAULT_MODEL"];
   const missing = required.filter(key => !process.env[key]);
 
   if (missing.length > 0) {
@@ -18,13 +18,13 @@ export function loadConfig(): Config {
   }
 
   return {
-    PORT: Number(process.env.PORT),
+    PORT: Number(process.env.PORT || "3000"),
     PROVIDER_URL: process.env.PROVIDER_URL!,
     DEFAULT_MODEL: process.env.DEFAULT_MODEL!,
-    CORS_ORIGIN: process.env.CORS_ORIGIN!,
-    CORS_METHODS: process.env.CORS_METHODS!,
-    CORS_HEADERS: process.env.CORS_HEADERS!,
-    HTTP_REFERER: process.env.HTTP_REFERER!,
-    PROXY_TITLE: process.env.PROXY_TITLE!,
+    CORS_ORIGIN: process.env.CORS_ORIGIN || "*",
+    CORS_METHODS: process.env.CORS_METHODS || "POST, OPTIONS",
+    CORS_HEADERS: process.env.CORS_HEADERS || "Content-Type, Authorization",
+    HTTP_REFERER: process.env.HTTP_REFERER || "https://weeball.ai",
+    PROXY_TITLE: process.env.PROXY_TITLE || "Weeball Proxy",
   };
 }

@@ -2,8 +2,11 @@ import type { Config } from "./config/env";
 import type { ChatCompletionRequest, ChatCompletionResponse } from "./types";
 import type { PluginProcessor } from "./middleware/plugin-processor";
 import type { Tool } from "./tools/types";
-import { parseSSEStream } from "./utils/stream-parser";
+import { parseSSEStreamEarly } from "./utils/stream-parser";
 
+// NOTE: Global state - model is set on proxy startup because this is a LEARNING project.
+// I WILL add runtime model change support LATER, AFTER I MAKE IT WORK.
+// For now, this is good enough for single-model deployments.
 let toolCallsEnabled = true;
 
 function makeRequest(url: string, authHeader: string, config: Config, body: any) {
@@ -17,6 +20,49 @@ function makeRequest(url: string, authHeader: string, config: Config, body: any)
     },
     body: JSON.stringify(body)
   });
+}
+
+function buildCorsHeaders(config: Config, contentType: "application/json" | "text/event-stream") {
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": config.CORS_ORIGIN,
+    "Access-Control-Allow-Methods": config.CORS_METHODS,
+    "Access-Control-Allow-Headers": config.CORS_HEADERS
+  };
+
+  if (contentType === "text/event-stream") {
+    headers["Cache-Control"] = "no-cache";
+    headers["Connection"] = "keep-alive";
+  }
+
+  return headers;
+}
+
+async function executeToolCalls(toolCalls: any[], tools: Tool[]) {
+  const toolResults = [];
+
+  for (const toolCall of toolCalls) {
+    const tool = tools.find(t => t.definition.function.name === toolCall.function.name);
+    if (tool) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        const result = await tool.executor(args);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: result
+        });
+      } catch (e) {
+        toolResults.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: `Error: ${e instanceof Error ? e.message : "Unknown error"}`
+        });
+      }
+    }
+  }
+
+  return toolResults;
 }
 
 export async function handleChatCompletion(
@@ -51,79 +97,36 @@ export async function handleChatCompletion(
   let providerResponse = await makeRequest(targetUrl, authHeader, config, body);
 
   if (!providerResponse.ok && body.tools) {
-    console.error("[TOOLS] Tool calls not supported by model, retrying without tools");
-    toolCallsEnabled = false;
-    delete body.tools;
-    providerResponse = await makeRequest(targetUrl, authHeader, config, body);
+    const errorText = await providerResponse.text();
+
+    const lowerError = errorText.toLowerCase();
+    const isToolError = (
+      (lowerError.includes("tool") && lowerError.includes("not") && (lowerError.includes("support") || lowerError.includes("available"))) ||
+      (lowerError.includes("function") && lowerError.includes("not") && (lowerError.includes("support") || lowerError.includes("available"))) ||
+      lowerError.includes("tool_choice") ||
+      lowerError.includes("tools") && lowerError.includes("invalid") ||
+      lowerError.includes("does not support function calling") ||
+      lowerError.includes("does not support tool") ||
+      lowerError.includes("function calling is not available")
+    );
+
+    if (isToolError) {
+      toolCallsEnabled = false;
+      delete body.tools;
+      providerResponse = await makeRequest(targetUrl, authHeader, config, body);
+    } else {
+      return new Response(errorText, {
+        status: providerResponse.status,
+        headers: buildCorsHeaders(config, "application/json")
+      });
+    }
   }
 
   if (body.stream && toolCallsEnabled && tools.length > 0) {
-    const streamResult = await parseSSEStream(providerResponse.body!);
+    const streamResult = await parseSSEStreamEarly(providerResponse.body!);
 
-    if (streamResult.passthrough) {
-      const encoder = new TextEncoder();
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          for (const chunk of streamResult.chunks) {
-            controller.enqueue(encoder.encode(chunk));
-          }
-
-          if (streamResult.remainingStream) {
-            const reader = streamResult.remainingStream.getReader();
-            try {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                controller.enqueue(value);
-              }
-            } finally {
-              reader.releaseLock();
-            }
-          }
-
-          controller.close();
-        }
-      });
-
-      return new Response(stream, {
-        status: providerResponse.status,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-          "Access-Control-Allow-Methods": config.CORS_METHODS,
-          "Access-Control-Allow-Headers": config.CORS_HEADERS,
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive"
-        }
-      });
-    }
-
-    if (streamResult.isToolCall) {
-      const toolCalls = streamResult.toolCalls!;
-      const toolResults = [];
-
-      for (const toolCall of toolCalls) {
-        const tool = tools.find(t => t.definition.function.name === toolCall.function.name);
-        if (tool) {
-          try {
-            const args = JSON.parse(toolCall.function.arguments);
-            const result = await tool.executor(args);
-            toolResults.push({
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: result
-            });
-          } catch (e) {
-            console.error(`[TOOLS] Execution failed for ${toolCall.function.name}:`, e);
-            toolResults.push({
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: `Error: ${e instanceof Error ? e.message : "Unknown error"}`
-            });
-          }
-        }
-      }
+    if (streamResult.isToolCall && streamResult.toolCalls && streamResult.toolCalls.length > 0) {
+      const toolResults = await executeToolCalls(streamResult.toolCalls, tools);
 
       const secondRoundBody = {
         ...body,
@@ -138,51 +141,20 @@ export async function handleChatCompletion(
 
       return new Response(secondRoundResponse.body, {
         status: secondRoundResponse.status,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-          "Access-Control-Allow-Methods": config.CORS_METHODS,
-          "Access-Control-Allow-Headers": config.CORS_HEADERS,
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive"
-        }
+        headers: buildCorsHeaders(config, "text/event-stream")
       });
     }
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        for (const chunk of streamResult.chunks) {
-          controller.enqueue(encoder.encode(chunk));
-        }
-        controller.close();
-      }
-    });
-
-    return new Response(stream, {
+    return new Response(streamResult.remainingStream, {
       status: providerResponse.status,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-        "Access-Control-Allow-Methods": config.CORS_METHODS,
-        "Access-Control-Allow-Headers": config.CORS_HEADERS,
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive"
-      }
+      headers: buildCorsHeaders(config, "text/event-stream")
     });
   }
 
   if (body.stream) {
     return new Response(providerResponse.body, {
       status: providerResponse.status,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-        "Access-Control-Allow-Methods": config.CORS_METHODS,
-        "Access-Control-Allow-Headers": config.CORS_HEADERS,
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive"
-      }
+      headers: buildCorsHeaders(config, "text/event-stream")
     });
   }
 
@@ -190,29 +162,7 @@ export async function handleChatCompletion(
 
   const toolCalls = responseData.choices?.[0]?.message?.tool_calls;
   if (toolCalls && toolCalls.length > 0) {
-    const toolResults = [];
-
-    for (const toolCall of toolCalls) {
-      const tool = tools.find(t => t.definition.function.name === toolCall.function.name);
-      if (tool) {
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          const result = await tool.executor(args);
-          toolResults.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: result
-          });
-        } catch (e) {
-          console.error(`[TOOLS] Execution failed for ${toolCall.function.name}:`, e);
-          toolResults.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: `Error: ${e instanceof Error ? e.message : "Unknown error"}`
-          });
-        }
-      }
-    }
+    const toolResults = await executeToolCalls(toolCalls, tools);
 
     const secondRoundBody = {
       ...body,
@@ -229,22 +179,12 @@ export async function handleChatCompletion(
     const finalResponse = await secondRoundResponse.json() as ChatCompletionResponse;
     return new Response(JSON.stringify(finalResponse), {
       status: secondRoundResponse.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-        "Access-Control-Allow-Methods": config.CORS_METHODS,
-        "Access-Control-Allow-Headers": config.CORS_HEADERS
-      }
+      headers: buildCorsHeaders(config, "application/json")
     });
   }
 
   return new Response(JSON.stringify(responseData), {
     status: providerResponse.status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-      "Access-Control-Allow-Methods": config.CORS_METHODS,
-      "Access-Control-Allow-Headers": config.CORS_HEADERS
-    }
+    headers: buildCorsHeaders(config, "application/json")
   });
 }

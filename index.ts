@@ -15,10 +15,7 @@ try {
 
   const server = createServer(config, pluginProcessor, tools);
 
-  console.log(`Weeball Phase 0 running on http://localhost:${server.port}`);
-  console.log(`Provider URL: ${config.PROVIDER_URL}`);
-  console.log(`Default Model: ${config.DEFAULT_MODEL}`);
-  console.log(`Tools loaded: ${tools.length}`);
+  console.log(`Weeball running on http://localhost:${server.port} | Provider: ${config.PROVIDER_URL} | Model: ${config.DEFAULT_MODEL}`);
 } catch (error) {
   console.error(`Failed to start server: ${error instanceof Error ? error.message : "Unknown error"}`);
   process.exit(1);

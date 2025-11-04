@@ -1,4 +1,4 @@
-import type { ContextPlugin } from "../types";
+import type { ContextPlugin } from "./types";
 
 export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> {
   const loadedPlugins: ContextPlugin[] = [];
@@ -17,7 +17,6 @@ export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> 
         loadedPlugins.push(plugin);
       }
     } catch (e) {
-      console.error(`Failed to load plugin ${file}:`, e);
     }
   }
 

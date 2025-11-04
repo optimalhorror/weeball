@@ -20,13 +20,11 @@ export async function loadTools(toolsDir: string): Promise<Tool[]> {
       const executor: ToolExecutor = executorModule.default || executorModule;
 
       if (typeof executor !== "function") {
-        console.error(`Tool ${baseName}: executor is not a function`);
         continue;
       }
 
       tools.push({ definition, executor });
     } catch (e) {
-      console.error(`Failed to load tool ${file}:`, e);
     }
   }
 
