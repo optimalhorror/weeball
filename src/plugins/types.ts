@@ -1,3 +1,8 @@
+export interface Message {
+  role: string;
+  content: string;
+}
+
 export interface ContextPlugin {
-  process: (context: string) => string;
+  process: (messages: Message[]) => Message[];
 }

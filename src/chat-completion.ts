@@ -18,14 +18,7 @@ export async function handleChatCompletion(
   const body = await req.json() as ChatCompletionRequest;
 
   if (body.messages) {
-    const lastUserIndex = body.messages.map(m => m.role).lastIndexOf("user");
-    if (lastUserIndex !== -1) {
-      const processed = pluginProcessor.processRequest(body.messages[lastUserIndex].content);
-      body.messages[lastUserIndex] = {
-        ...body.messages[lastUserIndex],
-        content: processed
-      };
-    }
+    body.messages = pluginProcessor.processRequest(body.messages);
   }
 
   if (config.DEFAULT_MODEL) {

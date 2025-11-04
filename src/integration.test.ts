@@ -22,7 +22,17 @@ describe("Integration: Full passthrough flow", () => {
 
   test("request → req-plugin → mock LLM → response", async () => {
     const requestPlugin: ContextPlugin = {
-      process: (content: string) => `[REQ]${content}[/REQ]`
+      process: (messages) => {
+        const modified = [...messages];
+        const lastUserIndex = modified.map(m => m.role).lastIndexOf("user");
+        if (lastUserIndex !== -1) {
+          modified[lastUserIndex] = {
+            ...modified[lastUserIndex],
+            content: `[REQ]${modified[lastUserIndex].content}[/REQ]`
+          };
+        }
+        return modified;
+      }
     };
 
     const mockLLMResponse = {

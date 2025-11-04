@@ -35,12 +35,17 @@ Client → Weeball → Plugins → Provider → Response
 
 **Plugin interface:**
 ```typescript
+interface Message {
+  role: string;
+  content: string;
+}
+
 interface ContextPlugin {
-  process: (context: string) => string;
+  process: (messages: Message[]) => Message[];
 }
 ```
 
-Plugins are just `.ts` files in `/plugins` that export a `process` function. They transform the last user message before it's sent to the LLM.
+Plugins receive the entire messages array and return a modified version. They can transform any message in the conversation.
 
 ## Setup
 
@@ -83,12 +88,26 @@ Create a file in `/plugins`:
 
 ```typescript
 // plugins/my-plugin.ts
+import type { Message } from "../src/plugins/types";
+
 export default {
-  process(content: string): string {
-    return content + "\n\nPlease respond concisely.";
+  process(messages: Message[]): Message[] {
+    const modified = [...messages];
+    const lastUserIndex = modified.map(m => m.role).lastIndexOf("user");
+
+    if (lastUserIndex !== -1) {
+      modified[lastUserIndex] = {
+        ...modified[lastUserIndex],
+        content: modified[lastUserIndex].content + "\n\nPlease respond concisely."
+      };
+    }
+
+    return modified;
   }
 };
 ```
+
+Plugins receive the full conversation history and can modify any message. The example above modifies only the last user message, but you can transform the entire array however you want.
 
 Plugins run in alphabetical order. Name them with prefixes if order matters:
 - `01-add-context.ts`

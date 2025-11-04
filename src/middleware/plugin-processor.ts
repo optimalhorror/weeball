@@ -1,4 +1,4 @@
-import type { ContextPlugin } from "../plugins/types";
+import type { ContextPlugin, Message } from "../plugins/types";
 
 export class PluginProcessor {
   private plugins: ContextPlugin[] = [];
@@ -7,8 +7,8 @@ export class PluginProcessor {
     this.plugins = plugins;
   }
 
-  processRequest(content: string): string {
-    let modified = content;
+  processRequest(messages: Message[]): Message[] {
+    let modified = messages;
     for (const plugin of this.plugins) {
       modified = plugin.process(modified);
     }
