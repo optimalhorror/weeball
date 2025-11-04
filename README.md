@@ -1,75 +1,137 @@
-# Weball
+# Weeball
 
-A semi-stateless smart proxy for AI chatbots built with Bun.
+A minimal LLM proxy with a plugin system for request transformation.
 
-## What's Currently Here
+## What It Does
 
-This is **Phase 0** - a basic passthrough proxy that forwards chat completion requests to LLM providers.
+Weeball sits between your chat client and LLM providers. It intercepts requests, runs them through plugins that can modify content, then forwards to the provider.
 
-### Features
+**Current state:** Request plugins only. Response processing removed for simplicity (streaming support takes priority).
 
-- **OpenAI-compatible API** - accepts `/chat/completions` requests
-- **Provider forwarding** - proxies requests to configurable LLM providers (default: OpenRouter)
-- **Model configuration** - all requests use the configured model
-- **Streaming support** - handles both streaming (SSE) and non-streaming responses
-- **CORS enabled** - allows cross-origin requests
-- **Request logging** - logs all incoming requests with timestamps
+## Features
 
-### Architecture
+- **OpenAI-compatible API** - `/chat/completions` endpoint
+- **Plugin system** - Transform requests before they hit the LLM
+- **Provider agnostic** - Works with any OpenAI-compatible API
+- **Streaming support** - Passes through streaming responses untouched
+- **Model override** - Force all requests to use a specific model
+- **Zero dependencies** - Pure Bun/TypeScript
 
-Single-file TypeScript proxy server (`index.ts`) that:
-- Accepts authorization headers (user's API key)
-- Forwards requests to the configured provider
-- Passes through responses without modification
-- No sessions, no sandboxing, no persistence
+## Architecture
 
-### Running
-
-```bash
-# Install dependencies
-bun install
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your configuration
-# Then start the server
-bun start
-
-# Or with watch mode
-bun dev
+```
+Client → Weeball → Plugins → Provider → Response
 ```
 
-### Configuration
+**Components:**
+- `index.ts` - Entry point, wires everything together
+- `src/server.ts` - HTTP routing (OPTIONS, 404, 405, chat completions)
+- `src/chat-completion.ts` - Core handler (auth, plugin processing, proxy)
+- `src/middleware/plugin-processor.ts` - Plugin orchestration
+- `src/plugins/loader.ts` - Scans and loads plugins from filesystem
+- `src/config/env.ts` - Environment configuration
+- `src/types.ts` - TypeScript interfaces for OpenAI API
+- `src/plugins/types.ts` - Plugin interface
 
-Create a `.env` file (see `.env.example`):
+**Plugin interface:**
+```typescript
+interface ContextPlugin {
+  process: (context: string) => string;
+}
+```
+
+Plugins are just `.ts` files in `/plugins` that export a `process` function. They transform the last user message before it's sent to the LLM.
+
+## Setup
+
+```bash
+bun install
+cp .env.example .env
+# Edit .env with your config
+bun start
+```
+
+## Configuration
+
+Create `.env`:
 
 ```env
 PORT=3000
 PROVIDER_URL=https://openrouter.ai/api/v1
 DEFAULT_MODEL=moonshotai/kimi-k2
+
+# Optional
+CORS_ORIGIN=*
+CORS_METHODS=POST, OPTIONS
+CORS_HEADERS=Content-Type, Authorization
+HTTP_REFERER=https://weeball.ai
+PROXY_TITLE=Weeball Proxy
 ```
 
-Environment variables:
+**Required:**
+- `PROVIDER_URL` - LLM provider endpoint (e.g., OpenRouter, OpenAI)
+- `DEFAULT_MODEL` - Model to use for all requests
+
+**Optional:**
 - `PORT` - Server port (default: 3000)
-- `PROVIDER_URL` - LLM provider endpoint (required)
-- `DEFAULT_MODEL` - Model to use for all requests (required)
+- `CORS_*` - CORS configuration
+- `HTTP_REFERER` / `PROXY_TITLE` - Sent to provider (may be required by some providers)
 
-### JanitorAI Setup
+## Writing Plugins
 
-1. Start the Weeball proxy server: `bun start`
-2. In JanitorAI, go to API Settings
-3. Configure as follows:
-   - **Proxy URL**: `http://localhost:3000/v1/chat/completions`
-   - **API Key**: Your OpenRouter API key
-   - **Model Name**: ANY (will be overridden by DEFAULT_MODEL)
+Create a file in `/plugins`:
 
-![JanitorAI Configuration](docs/janitorai-config.png)
+```typescript
+// plugins/my-plugin.ts
+export default {
+  process(content: string): string {
+    return content + "\n\nPlease respond concisely.";
+  }
+};
+```
 
-The proxy will intercept requests and forward them to your configured provider with your chosen model.
+Plugins run in alphabetical order. Name them with prefixes if order matters:
+- `01-add-context.ts`
+- `02-format.ts`
+- `99-final-check.ts`
 
-### Tech Stack
+## Testing
 
-- **Runtime**: Bun
-- **Language**: TypeScript
-- **Dependencies**: None (only dev dependencies for types)
+```bash
+bun test
+```
+
+Runs integration tests that verify the full request → plugin → proxy → response flow.
+
+## Usage with Chat Clients
+
+**JanitorAI:**
+1. Start Weeball: `bun start`
+2. In JanitorAI API Settings:
+   - Proxy URL: `http://localhost:3000/v1/chat/completions`
+   - API Key: Your provider's API key
+   - Model: (ignored, DEFAULT_MODEL is used)
+
+**Any OpenAI-compatible client:**
+```bash
+curl http://localhost:3000/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_PROVIDER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ignored",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+```
+
+## Stats
+
+- **207 lines of code** (excluding tests)
+- **7 source files**
+- **Zero runtime dependencies**
+- **2 integration tests**
+
+## Tech Stack
+
+- **Runtime:** Bun
+- **Language:** TypeScript
+- **Testing:** Bun's built-in test runner
