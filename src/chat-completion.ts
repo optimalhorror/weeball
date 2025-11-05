@@ -1,8 +1,8 @@
 import type { Config } from "./config/env";
 import type { ChatCompletionRequest, ChatCompletionResponse } from "./types";
 import type { PluginProcessor } from "./middleware/plugin-processor";
-import type { Tool } from "./tools/types";
-import { parseSSEStreamEarly } from "./utils/stream-parser";
+import type { ToolProcessor } from "./middleware/tool-processor";
+import { classifyStreamResponse } from "./utils/stream-parser";
 
 // NOTE: Global state - model is set on proxy startup because this is a LEARNING project.
 // I WILL add runtime model change support LATER, AFTER I MAKE IT WORK.
@@ -38,27 +38,24 @@ function buildCorsHeaders(config: Config, contentType: "application/json" | "tex
   return headers;
 }
 
-async function executeToolCalls(toolCalls: any[], tools: Tool[]) {
+async function executeToolCalls(toolCalls: any[], toolProcessor: ToolProcessor) {
   const toolResults = [];
 
   for (const toolCall of toolCalls) {
-    const tool = tools.find(t => t.definition.function.name === toolCall.function.name);
-    if (tool) {
-      try {
-        const args = JSON.parse(toolCall.function.arguments);
-        const result = await tool.executor(args);
-        toolResults.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: result
-        });
-      } catch (e) {
-        toolResults.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: `Error: ${e instanceof Error ? e.message : "Unknown error"}`
-        });
-      }
+    try {
+      const args = JSON.parse(toolCall.function.arguments);
+      const result = await toolProcessor.execute(toolCall.function.name, args);
+      toolResults.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: result
+      });
+    } catch (e) {
+      toolResults.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: `Error: ${e instanceof Error ? e.message : "Unknown error"}`
+      });
     }
   }
 
@@ -69,7 +66,7 @@ export async function handleChatCompletion(
   req: Request,
   config: Config,
   pluginProcessor: PluginProcessor,
-  tools: Tool[]
+  toolProcessor: ToolProcessor
 ): Promise<Response> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -89,8 +86,8 @@ export async function handleChatCompletion(
     body.model = config.DEFAULT_MODEL;
   }
 
-  if (toolCallsEnabled && tools.length > 0) {
-    body.tools = tools.map(t => t.definition);
+  if (toolCallsEnabled && toolProcessor.hasTools()) {
+    body.tools = toolProcessor.getDefinitions();
   }
 
   const targetUrl = `${config.PROVIDER_URL}/chat/completions`;
@@ -122,11 +119,11 @@ export async function handleChatCompletion(
     }
   }
 
-  if (body.stream && toolCallsEnabled && tools.length > 0) {
-    const streamResult = await parseSSEStreamEarly(providerResponse.body!);
+  if (body.stream && toolCallsEnabled && toolProcessor.hasTools()) {
+    const streamResult = await classifyStreamResponse(providerResponse.body!);
 
     if (streamResult.isToolCall && streamResult.toolCalls && streamResult.toolCalls.length > 0) {
-      const toolResults = await executeToolCalls(streamResult.toolCalls, tools);
+      const toolResults = await executeToolCalls(streamResult.toolCalls, toolProcessor);
 
       const secondRoundBody = {
         ...body,
@@ -162,7 +159,7 @@ export async function handleChatCompletion(
 
   const toolCalls = responseData.choices?.[0]?.message?.tool_calls;
   if (toolCalls && toolCalls.length > 0) {
-    const toolResults = await executeToolCalls(toolCalls, tools);
+    const toolResults = await executeToolCalls(toolCalls, toolProcessor);
 
     const secondRoundBody = {
       ...body,

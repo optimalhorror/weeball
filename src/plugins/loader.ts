@@ -15,10 +15,14 @@ export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> 
 
       if (typeof plugin.process === "function") {
         loadedPlugins.push(plugin);
+      } else {
+        console.warn(`[Plugin Loader] Skipping ${file}: missing process function`);
       }
     } catch (e) {
+      console.error(`[Plugin Loader] Failed to load ${file}:`, e instanceof Error ? e.message : e);
     }
   }
 
+  console.log(`[Plugin Loader] Loaded ${loadedPlugins.length} plugin(s) from ${pluginsDir}`);
   return loadedPlugins;
 }

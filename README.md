@@ -26,9 +26,10 @@ Client → Weeball → Plugins → Provider
 
 **Components:**
 - `index.ts` - Entry point, wires everything together
-- `src/server.ts` - HTTP routing
+- `src/server.ts` - HTTP routing with CORS
 - `src/chat-completion.ts` - Core handler (auth, plugins, tools, streaming)
 - `src/middleware/plugin-processor.ts` - Plugin orchestration
+- `src/middleware/tool-processor.ts` - Tool orchestration
 - `src/plugins/loader.ts` - Loads plugins from `/plugins`
 - `src/tools/loader.ts` - Loads tools from `/tools`
 - `src/utils/stream-parser.ts` - Smart streaming with early detection
@@ -172,7 +173,7 @@ Tests cover plugin processing, tool calling, streaming, and error handling.
 
 **Any OpenAI-compatible client:**
 ```bash
-curl http://localhost:3000/v1/chat/completions \
+curl http://localhost:3000/chat/completions \
   -H "Authorization: Bearer YOUR_PROVIDER_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -181,10 +182,12 @@ curl http://localhost:3000/v1/chat/completions \
   }'
 ```
 
+Both `/chat/completions` and `/v1/chat/completions` paths are supported.
+
 ## Stats
 
-- **~350 lines of code** (excluding tests)
-- **10 source files**
+- **~600 lines of code** (excluding tests)
+- **11 source files**
 - **Zero runtime dependencies**
 - **4 integration tests**
 

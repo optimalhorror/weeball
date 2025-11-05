@@ -1,6 +1,7 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { createServer } from "./server";
 import { PluginProcessor } from "./middleware/plugin-processor";
+import { ToolProcessor } from "./middleware/tool-processor";
 import type { Config } from "./config/env";
 import type { ContextPlugin } from "./plugins/types";
 import type { Tool } from "./tools/types";
@@ -58,10 +59,13 @@ describe("Integration: Full passthrough flow", () => {
 
     globalThis.fetch = fetchMock as any;
 
-    const processor = new PluginProcessor();
-    processor.load([requestPlugin]);
+    const pluginProcessor = new PluginProcessor();
+    await pluginProcessor.load([requestPlugin]);
 
-    const server = createServer(mockConfig, processor, []);
+    const toolProcessor = new ToolProcessor();
+    await toolProcessor.load([]);
+
+    const server = createServer(mockConfig, pluginProcessor, toolProcessor);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
@@ -106,10 +110,13 @@ describe("Integration: Full passthrough flow", () => {
 
     globalThis.fetch = fetchMock as any;
 
-    const processor = new PluginProcessor();
-    processor.load([]);
+    const pluginProcessor = new PluginProcessor();
+    await pluginProcessor.load([]);
 
-    const server = createServer(mockConfig, processor, []);
+    const toolProcessor = new ToolProcessor();
+    await toolProcessor.load([]);
+
+    const server = createServer(mockConfig, pluginProcessor, toolProcessor);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
@@ -216,10 +223,13 @@ describe("Integration: Full passthrough flow", () => {
 
     globalThis.fetch = fetchMock as any;
 
-    const processor = new PluginProcessor();
-    processor.load([]);
+    const pluginProcessor = new PluginProcessor();
+    await pluginProcessor.load([]);
 
-    const server = createServer(mockConfig, processor, [mockTool]);
+    const toolProcessor = new ToolProcessor();
+    await toolProcessor.load([mockTool]);
+
+    const server = createServer(mockConfig, pluginProcessor, toolProcessor);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
@@ -296,10 +306,13 @@ describe("Integration: Full passthrough flow", () => {
 
     globalThis.fetch = fetchMock as any;
 
-    const processor = new PluginProcessor();
-    processor.load([]);
+    const pluginProcessor = new PluginProcessor();
+    await pluginProcessor.load([]);
 
-    const server = createServer(mockConfig, processor, [mockTool]);
+    const toolProcessor = new ToolProcessor();
+    await toolProcessor.load([mockTool]);
+
+    const server = createServer(mockConfig, pluginProcessor, toolProcessor);
 
     const request = new Request(`http://localhost:${mockConfig.PORT}/chat/completions`, {
       method: "POST",
