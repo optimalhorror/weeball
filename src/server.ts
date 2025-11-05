@@ -2,14 +2,7 @@ import type { Config } from "./config/env";
 import { handleChatCompletion } from "./chat-completion";
 import type { PluginProcessor } from "./middleware/plugin-processor";
 import type { ToolProcessor } from "./middleware/tool-processor";
-
-function buildCorsHeaders(config: Config) {
-  return {
-    "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-    "Access-Control-Allow-Methods": config.CORS_METHODS,
-    "Access-Control-Allow-Headers": config.CORS_HEADERS
-  };
-}
+import { buildBaseCorsHeaders } from "./utils/cors";
 
 export function createServer(config: Config, pluginProcessor: PluginProcessor, toolProcessor: ToolProcessor) {
   return Bun.serve({
@@ -21,7 +14,7 @@ export function createServer(config: Config, pluginProcessor: PluginProcessor, t
         return new Response(null, {
           status: 204,
           headers: {
-            ...buildCorsHeaders(config),
+            ...buildBaseCorsHeaders(config),
             "Access-Control-Max-Age": "86400"
           }
         });
@@ -32,7 +25,7 @@ export function createServer(config: Config, pluginProcessor: PluginProcessor, t
           status: 404,
           headers: {
             "Content-Type": "application/json",
-            ...buildCorsHeaders(config)
+            ...buildBaseCorsHeaders(config)
           }
         });
       }
@@ -43,7 +36,7 @@ export function createServer(config: Config, pluginProcessor: PluginProcessor, t
           headers: {
             "Content-Type": "application/json",
             "Allow": "POST, OPTIONS",
-            ...buildCorsHeaders(config)
+            ...buildBaseCorsHeaders(config)
           }
         });
       }

@@ -33,6 +33,7 @@ Client → Weeball → Plugins → Provider
 - `src/plugins/loader.ts` - Loads plugins from `/plugins`
 - `src/tools/loader.ts` - Loads tools from `/tools`
 - `src/utils/stream-parser.ts` - Smart streaming with early detection
+- `src/utils/cors.ts` - Shared CORS headers
 - `src/config/env.ts` - Environment configuration
 - `src/types.ts` - OpenAI API types
 
@@ -187,7 +188,7 @@ Both `/chat/completions` and `/v1/chat/completions` paths are supported.
 ## Stats
 
 - **~600 lines of code** (excluding tests)
-- **11 source files**
+- **12 source files**
 - **Zero runtime dependencies**
 - **4 integration tests**
 

@@ -3,10 +3,23 @@ import type { ChatCompletionRequest, ChatCompletionResponse } from "./types";
 import type { PluginProcessor } from "./middleware/plugin-processor";
 import type { ToolProcessor } from "./middleware/tool-processor";
 import { classifyStreamResponse } from "./utils/stream-parser";
+import { buildBaseCorsHeaders } from "./utils/cors";
 
-// NOTE: Global state - model is set on proxy startup because this is a LEARNING project.
-// I WILL add runtime model change support LATER, AFTER I MAKE IT WORK.
-// For now, this is good enough for single-model deployments.
+// ============================================================================
+// GLOBAL STATE - INTENTIONAL FOR SINGLE-USER MVP
+// ============================================================================
+// This proxy is a CONSOLE MVP for a SINGLE USER who starts it locally.
+// The model is defined in .env at STARTUP and doesn't change at runtime.
+//
+// If the startup model doesn't support tool calls, we detect that ONCE and
+// disable tools for the ENTIRE SESSION. This is correct behavior because:
+// - Single user = no concurrency issues
+// - Single model = tool support doesn't change mid-session
+// - Console MVP = user restarts proxy to change model
+//
+// Multi-user support and per-request model selection will come LATER.
+// For now, this design is intentional and appropriate for the MVP scope.
+// ============================================================================
 let toolCallsEnabled = true;
 
 function makeRequest(url: string, authHeader: string, config: Config, body: any) {
@@ -22,12 +35,10 @@ function makeRequest(url: string, authHeader: string, config: Config, body: any)
   });
 }
 
-function buildCorsHeaders(config: Config, contentType: "application/json" | "text/event-stream") {
+function buildResponseHeaders(config: Config, contentType: "application/json" | "text/event-stream") {
   const headers: Record<string, string> = {
     "Content-Type": contentType,
-    "Access-Control-Allow-Origin": config.CORS_ORIGIN,
-    "Access-Control-Allow-Methods": config.CORS_METHODS,
-    "Access-Control-Allow-Headers": config.CORS_HEADERS
+    ...buildBaseCorsHeaders(config)
   };
 
   if (contentType === "text/event-stream") {
@@ -114,7 +125,7 @@ export async function handleChatCompletion(
     } else {
       return new Response(errorText, {
         status: providerResponse.status,
-        headers: buildCorsHeaders(config, "application/json")
+        headers: buildResponseHeaders(config, "application/json")
       });
     }
   }
@@ -138,20 +149,20 @@ export async function handleChatCompletion(
 
       return new Response(secondRoundResponse.body, {
         status: secondRoundResponse.status,
-        headers: buildCorsHeaders(config, "text/event-stream")
+        headers: buildResponseHeaders(config, "text/event-stream")
       });
     }
 
     return new Response(streamResult.remainingStream, {
       status: providerResponse.status,
-      headers: buildCorsHeaders(config, "text/event-stream")
+      headers: buildResponseHeaders(config, "text/event-stream")
     });
   }
 
   if (body.stream) {
     return new Response(providerResponse.body, {
       status: providerResponse.status,
-      headers: buildCorsHeaders(config, "text/event-stream")
+      headers: buildResponseHeaders(config, "text/event-stream")
     });
   }
 
@@ -176,12 +187,12 @@ export async function handleChatCompletion(
     const finalResponse = await secondRoundResponse.json() as ChatCompletionResponse;
     return new Response(JSON.stringify(finalResponse), {
       status: secondRoundResponse.status,
-      headers: buildCorsHeaders(config, "application/json")
+      headers: buildResponseHeaders(config, "application/json")
     });
   }
 
   return new Response(JSON.stringify(responseData), {
     status: providerResponse.status,
-    headers: buildCorsHeaders(config, "application/json")
+    headers: buildResponseHeaders(config, "application/json")
   });
 }

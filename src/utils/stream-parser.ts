@@ -51,7 +51,6 @@ function createPassthroughStream(reader: any, bufferedChunks: string[]): Readabl
 
 export async function classifyStreamResponse(stream: ReadableStream, maxBufferChunks: number = 5): Promise<{
   isToolCall: boolean;
-  shouldBuffer: boolean;
   chunks: string[];
   toolCalls?: any[];
   assistantMessage?: any;
@@ -83,7 +82,6 @@ export async function classifyStreamResponse(stream: ReadableStream, maxBufferCh
         if (delta && 'content' in delta && delta.content !== null && delta.content !== '') {
           return {
             isToolCall: false,
-            shouldBuffer: false,
             chunks,
             remainingStream: createPassthroughStream(reader, chunks)
           };
@@ -131,7 +129,6 @@ export async function classifyStreamResponse(stream: ReadableStream, maxBufferCh
 
     return {
       isToolCall: true,
-      shouldBuffer: true,
       chunks,
       toolCalls,
       assistantMessage: {
@@ -144,7 +141,6 @@ export async function classifyStreamResponse(stream: ReadableStream, maxBufferCh
 
   return {
     isToolCall: false,
-    shouldBuffer: false,
     chunks,
     remainingStream: createPassthroughStream(reader, chunks)
   };
