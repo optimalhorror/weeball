@@ -1,15 +1,6 @@
-export interface ToolDefinition {
-  type: "function";
-  function: {
-    name: string;
-    description: string;
-    parameters: {
-      type: "object";
-      properties: Record<string, any>;
-      required?: string[];
-    };
-  };
-}
+import type { ChatCompletionTool } from "openai/resources/chat/completions";
+
+export type ToolDefinition = ChatCompletionTool;
 
 export interface ToolExecutor {
   (args: any): Promise<string> | string;

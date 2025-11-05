@@ -1,4 +1,5 @@
 import type { Tool, ToolDefinition, ToolExecutor } from "./types";
+import { logProxyInfo, logProxyWarn, logProxyError } from "../utils/logger";
 
 export async function loadTools(toolsDir: string): Promise<Tool[]> {
   const tools: Tool[] = [];
@@ -20,16 +21,16 @@ export async function loadTools(toolsDir: string): Promise<Tool[]> {
       const executor: ToolExecutor = executorModule.default || executorModule;
 
       if (typeof executor !== "function") {
-        console.warn(`[Tool Loader] Skipping ${file}: executor is not a function`);
+        logProxyWarn("ToolLoader", `Skipping ${file}: executor is not a function`);
         continue;
       }
 
       tools.push({ definition, executor });
     } catch (e) {
-      console.error(`[Tool Loader] Failed to load ${file}:`, e instanceof Error ? e.message : e);
+      logProxyError("ToolLoader", `Failed to load ${file}`, e);
     }
   }
 
-  console.log(`[Tool Loader] Loaded ${tools.length} tool(s) from ${toolsDir}`);
+  logProxyInfo("ToolLoader", `Loaded ${tools.length} tool(s) from ${toolsDir}`);
   return tools;
 }

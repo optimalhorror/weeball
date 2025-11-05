@@ -1,4 +1,5 @@
 import type { ContextPlugin } from "./types";
+import { logProxyInfo, logProxyWarn, logProxyError } from "../utils/logger";
 
 export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> {
   const loadedPlugins: ContextPlugin[] = [];
@@ -16,13 +17,13 @@ export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> 
       if (typeof plugin.process === "function") {
         loadedPlugins.push(plugin);
       } else {
-        console.warn(`[Plugin Loader] Skipping ${file}: missing process function`);
+        logProxyWarn("PluginLoader", `Skipping ${file}: missing process function`);
       }
     } catch (e) {
-      console.error(`[Plugin Loader] Failed to load ${file}:`, e instanceof Error ? e.message : e);
+      logProxyError("PluginLoader", `Failed to load ${file}`, e);
     }
   }
 
-  console.log(`[Plugin Loader] Loaded ${loadedPlugins.length} plugin(s) from ${pluginsDir}`);
+  logProxyInfo("PluginLoader", `Loaded ${loadedPlugins.length} plugin(s) from ${pluginsDir}`);
   return loadedPlugins;
 }

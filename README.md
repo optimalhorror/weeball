@@ -14,7 +14,7 @@ Weeball sits between your chat client and LLM providers. It intercepts requests,
 - **Smart streaming** - Early detection for minimal latency on content responses
 - **Provider agnostic** - Works with any OpenAI-compatible API
 - **Model override** - Force all requests to use a specific model
-- **Zero dependencies** - Pure Bun/TypeScript
+- **Minimal dependencies** - Only `openai` types package
 
 ## Architecture
 
@@ -25,31 +25,35 @@ Client → Weeball → Plugins → Provider
 ```
 
 **Components:**
-- `index.ts` - Entry point, wires everything together
-- `src/server.ts` - HTTP routing with CORS
-- `src/chat-completion.ts` - Core handler (auth, plugins, tools, streaming)
+- `index.ts` - Entry point
+- `src/server.ts` - HTTP routing
+- `src/chat-completion.ts` - Main request handler
+- `src/middleware/auth.ts` - Auth validation
 - `src/middleware/plugin-processor.ts` - Plugin orchestration
 - `src/middleware/tool-processor.ts` - Tool orchestration
-- `src/plugins/loader.ts` - Loads plugins from `/plugins`
+- `src/provider/client.ts` - Provider communication
+- `src/tools/executor.ts` - Tool execution
 - `src/tools/loader.ts` - Loads tools from `/tools`
-- `src/utils/stream-parser.ts` - Smart streaming with early detection
-- `src/utils/cors.ts` - Shared CORS headers
-- `src/config/env.ts` - Environment configuration
-- `src/types.ts` - OpenAI API types
+- `src/plugins/loader.ts` - Loads plugins from `/plugins`
+- `src/utils/stream-parser.ts` - Smart streaming
+- `src/utils/response-builder.ts` - Response utilities
+- `src/utils/logger.ts` - Logging
+- `src/utils/cors.ts` - CORS headers
+- `src/config/env.ts` - Environment config
+- `src/types.ts` - OpenAI type re-exports
 
 **Plugin interface:**
 ```typescript
-interface Message {
-  role: string;
-  content: string;
-}
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
+type Message = ChatCompletionMessageParam;
 
 interface ContextPlugin {
   process: (messages: Message[]) => Message[];
 }
 ```
 
-Plugins receive the entire messages array and return a modified version. They can transform any message in the conversation.
+Plugins receive the entire messages array and return a modified version. Messages use OpenAI's type definitions.
 
 ## Setup
 
@@ -188,8 +192,8 @@ Both `/chat/completions` and `/v1/chat/completions` paths are supported.
 ## Stats
 
 - **~600 lines of code** (excluding tests)
-- **12 source files**
-- **Zero runtime dependencies**
+- **16 source files**
+- **1 runtime dependency** (`openai` for types)
 - **4 integration tests**
 
 ## Tech Stack

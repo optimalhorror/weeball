@@ -1,3 +1,5 @@
+import { logProxyError } from "./logger";
+
 interface StreamedToolCall {
   index: number;
   id?: string;
@@ -111,7 +113,7 @@ export async function classifyStreamResponse(stream: ReadableStream, maxBufferCh
           const delta = parsed.choices?.[0]?.delta;
           processToolCallDelta(toolCallsMap, delta);
         } catch (e) {
-          console.error("[STREAM] Failed to parse SSE data:", data, e);
+          logProxyError("StreamParser", `Failed to parse SSE data: ${data}`, e);
         }
       }
     }
