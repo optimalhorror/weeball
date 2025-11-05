@@ -91,6 +91,7 @@ export async function classifyStreamResponse(stream: ReadableStream, maxBufferCh
 
         processToolCallDelta(toolCallsMap, delta);
       } catch (e) {
+        logProxyError("StreamParser", `Failed to parse SSE data during buffering: ${data}`, e);
       }
     }
   }

@@ -4,7 +4,6 @@ import { loadTools } from "../tools/loader";
 export class ToolProcessor {
   private tools: Tool[] = [];
   private toolMap: Map<string, Tool> = new Map();
-  private definitionsCache: ToolDefinition[] | null = null;
 
   async load(toolsSource: string | Tool[]): Promise<void> {
     if (typeof toolsSource === "string") {
@@ -17,15 +16,10 @@ export class ToolProcessor {
     for (const tool of this.tools) {
       this.toolMap.set(tool.definition.function.name, tool);
     }
-
-    this.definitionsCache = null;
   }
 
   getDefinitions(): ToolDefinition[] {
-    if (!this.definitionsCache) {
-      this.definitionsCache = this.tools.map(tool => tool.definition);
-    }
-    return this.definitionsCache;
+    return this.tools.map(tool => tool.definition);
   }
 
   async execute(toolName: string, args: any): Promise<string> {
