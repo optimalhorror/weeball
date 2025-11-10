@@ -21,7 +21,7 @@ export async function handleChatCompletion(
 ): Promise<Response> {
   let authHeader: string;
   try {
-    authHeader = validateAuthHeader(req);
+    authHeader = validateAuthHeader(req, config);
   } catch (e) {
     if (e instanceof AuthError) {
       return createErrorResponse(config, 401, e.message);
