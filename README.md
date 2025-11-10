@@ -235,9 +235,9 @@ Plugins have full Bun runtime access (SQLite, fetch, file I/O, WebSocket). Tools
 
 ## Stats
 
-- **~600 lines of code** (excluding tests)
-- **16 source files**
-- **1 runtime dependency** (`openai` for types)
+- **~1000 lines of code** (excluding tests)
+- **19 source files**
+- **2 runtime dependencies** (`openai` for types, `gpt-tokenizer` for plugin limits)
 - **4 integration tests**
 
 ## Tech Stack
