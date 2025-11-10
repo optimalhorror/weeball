@@ -9,12 +9,12 @@ Weeball sits between your chat client and LLM providers. It intercepts requests,
 ## Features
 
 - **OpenAI-compatible API** - `/chat/completions` endpoint
-- **Plugin system** - Transform requests before they hit the LLM
+- **Plugin system** - Transform requests before they hit the LLM with token limits
 - **Tool calling** - Execute functions locally, handle multi-round conversations
 - **Smart streaming** - Early detection for minimal latency on content responses
 - **Provider agnostic** - Works with any OpenAI-compatible API
 - **Model override** - Force all requests to use a specific model
-- **Minimal dependencies** - Only `openai` types package
+- **Minimal dependencies** - Only 2 packages (`openai` types, `gpt-tokenizer`)
 
 ## Architecture
 
@@ -128,6 +128,18 @@ Plugins run in alphabetical order. Name them with prefixes if order matters:
 - `01-add-context.ts`
 - `02-format.ts`
 - `99-final-check.ts`
+
+### Token Limiting
+
+Plugins can add context (RAG, system prompts, etc.), but Weeball limits how much they can inject:
+
+- **MAX_PLUGIN_TOKENS** (default: 1000) sets the maximum tokens plugins can add
+- Original client messages are **never truncated** - only plugin additions
+- If plugins add more than the limit, added messages are removed (oldest first) until under limit
+- Truncation happens on whole messages, not mid-sentence
+- Example: Plugin adds 5 system messages (1500 tokens total), limit is 1000 → first 2 messages dropped
+
+This prevents runaway context injection while ensuring the user's actual conversation always gets through.
 
 ## Writing Tools
 
