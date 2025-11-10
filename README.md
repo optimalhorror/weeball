@@ -42,19 +42,6 @@ Client → Weeball → Plugins → Provider
 - `src/config/env.ts` - Environment config
 - `src/types.ts` - OpenAI type re-exports
 
-**Plugin interface:**
-```typescript
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-
-type Message = ChatCompletionMessageParam;
-
-interface ContextPlugin {
-  process: (messages: Message[]) => Message[];
-}
-```
-
-Plugins receive the entire messages array and return a modified version. Messages use OpenAI's type definitions.
-
 ## Setup
 
 ```bash
