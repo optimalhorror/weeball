@@ -178,7 +178,7 @@ Tests cover plugin processing, tool calling, streaming, and error handling.
    - API URL: `http://localhost:3000/v1`
    - API Key: (can be anything, FALLBACK_API_KEY is used)
    - Enable "Chat Completion Only" and "No Key Required"
-   - Enable "Use Browser Request" (safe with localhost proxy)
+   - Enable "Use Browser Request" (note: API key is still sent from proxy to provider)
 
 **JanitorAI:**
 1. Start Weeball: `bun start`
