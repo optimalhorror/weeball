@@ -88,7 +88,7 @@ PROXY_TITLE=Weeball Proxy
 
 **Optional (with defaults):**
 - `PORT` - Server port (default: `3000`)
-- `FALLBACK_API_KEY` - API key to use when client sends malformed auth (e.g., for Wyvern Chat compatibility)
+- `FALLBACK_API_KEY` - API key to use only when client sends malformed/unusable auth (e.g., for Wyvern Chat bug workaround)
 - `CORS_ORIGIN` - CORS allowed origins (default: `*`)
 - `CORS_METHODS` - CORS allowed methods (default: `POST, OPTIONS`)
 - `CORS_HEADERS` - CORS allowed headers (default: `Content-Type, Authorization, HTTP-Referer, X-Title`)
