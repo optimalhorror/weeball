@@ -8,6 +8,7 @@ export interface Config {
   CORS_HEADERS: string;
   HTTP_REFERER: string;
   PROXY_TITLE: string;
+  MAX_PLUGIN_TOKENS: number;
 }
 
 export function loadConfig(): Config {
@@ -28,5 +29,6 @@ export function loadConfig(): Config {
     CORS_HEADERS: process.env.CORS_HEADERS || "Content-Type, Authorization, HTTP-Referer, X-Title",
     HTTP_REFERER: process.env.HTTP_REFERER || "https://weeball.ai",
     PROXY_TITLE: process.env.PROXY_TITLE || "Weeball Proxy",
+    MAX_PLUGIN_TOKENS: Number(process.env.MAX_PLUGIN_TOKENS || "1000"),
   };
 }

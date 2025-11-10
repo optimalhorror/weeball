@@ -7,7 +7,7 @@ try {
   const config = loadConfig();
 
   const pluginProcessor = new PluginProcessor();
-  await pluginProcessor.load(`${import.meta.dir}/plugins`);
+  await pluginProcessor.load(`${import.meta.dir}/plugins`, config.MAX_PLUGIN_TOKENS);
 
   const toolProcessor = new ToolProcessor();
   await toolProcessor.load(`${import.meta.dir}/tools`);

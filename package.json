@@ -17,6 +17,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "gpt-tokenizer": "^3.4.0",
     "openai": "^6.8.1"
   }
 }

@@ -75,6 +75,7 @@ DEFAULT_MODEL=deepseek/deepseek-v3.2-exp
 
 # Optional
 FALLBACK_API_KEY=your-openrouter-api-key
+MAX_PLUGIN_TOKENS=1000
 CORS_ORIGIN=*
 CORS_METHODS=POST, OPTIONS
 CORS_HEADERS=Content-Type, Authorization, HTTP-Referer, X-Title
@@ -89,6 +90,7 @@ PROXY_TITLE=Weeball Proxy
 **Optional (with defaults):**
 - `PORT` - Server port (default: `3000`)
 - `FALLBACK_API_KEY` - API key to use only when client sends malformed/unusable auth (e.g., for Wyvern Chat bug workaround)
+- `MAX_PLUGIN_TOKENS` - Maximum tokens plugins can add to requests (default: `1000`). Added content exceeding this is truncated
 - `CORS_ORIGIN` - CORS allowed origins (default: `*`)
 - `CORS_METHODS` - CORS allowed methods (default: `POST, OPTIONS`)
 - `CORS_HEADERS` - CORS allowed headers (default: `Content-Type, Authorization, HTTP-Referer, X-Title`)
