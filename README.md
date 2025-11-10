@@ -174,9 +174,10 @@ Tests cover plugin processing, tool calling, streaming, and error handling.
 **Wyvern Chat:**
 1. Set `FALLBACK_API_KEY` in `.env` to your OpenRouter API key
 2. Start Weeball: `bun start`
-3. In Wyvern settings:
-   - API URL: `http://localhost:3000/v1/chat/completions`
+3. In Wyvern AI Connections settings:
+   - API URL: `http://localhost:3000/v1`
    - API Key: (can be anything, FALLBACK_API_KEY is used)
+   - Enable "Chat Completion Only" and "No Key Required"
 
 **JanitorAI:**
 1. Start Weeball: `bun start`
