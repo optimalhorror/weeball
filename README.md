@@ -200,6 +200,37 @@ curl http://localhost:3000/chat/completions \
 
 Both `/chat/completions` and `/v1/chat/completions` paths are supported.
 
+## Use Cases
+
+The plugin and tool system gives you full runtime access. Here are some examples of what you can build:
+
+**Dynamic routing:**
+- Analyze request content and route to specialized models (horror → Claude Opus, coding → DeepSeek)
+- Cost optimization by provider/model selection
+- Fallback chains when providers are down
+
+**Context enhancement:**
+- RAG: Vector search your docs and inject relevant context
+- Conversation memory: SQLite-backed long-term memory
+- Game state: Track inventory, quests, character stats
+
+**Automation:**
+- Trigger external APIs based on conversation events
+- Log conversations to databases for analysis
+- Send notifications (Discord, Telegram, SMS)
+
+**Content transformation:**
+- Pre-process user messages (censoring, formatting)
+- Post-process AI responses (with response plugins - not implemented yet)
+- Inject system prompts dynamically
+
+**TTRPG engines:**
+- Dice rolling tools that execute locally
+- Inventory management via plugins
+- NPC generation and tracking
+
+Plugins have full Bun runtime access (SQLite, fetch, file I/O, WebSocket). Tools are AI-triggered functions. Both are just TypeScript - no framework limitations.
+
 ## Stats
 
 - **~600 lines of code** (excluding tests)
