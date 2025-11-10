@@ -71,12 +71,13 @@ Create `.env`:
 ```env
 PORT=3000
 PROVIDER_URL=https://openrouter.ai/api/v1
-DEFAULT_MODEL=moonshotai/kimi-k2
+DEFAULT_MODEL=deepseek/deepseek-v3.2-exp
 
 # Optional
+FALLBACK_API_KEY=your-openrouter-api-key
 CORS_ORIGIN=*
 CORS_METHODS=POST, OPTIONS
-CORS_HEADERS=Content-Type, Authorization
+CORS_HEADERS=Content-Type, Authorization, HTTP-Referer, X-Title
 HTTP_REFERER=https://weeball.ai
 PROXY_TITLE=Weeball Proxy
 ```
@@ -87,9 +88,10 @@ PROXY_TITLE=Weeball Proxy
 
 **Optional (with defaults):**
 - `PORT` - Server port (default: `3000`)
+- `FALLBACK_API_KEY` - API key to use when client sends malformed auth (e.g., for Wyvern Chat compatibility)
 - `CORS_ORIGIN` - CORS allowed origins (default: `*`)
 - `CORS_METHODS` - CORS allowed methods (default: `POST, OPTIONS`)
-- `CORS_HEADERS` - CORS allowed headers (default: `Content-Type, Authorization`)
+- `CORS_HEADERS` - CORS allowed headers (default: `Content-Type, Authorization, HTTP-Referer, X-Title`)
 - `HTTP_REFERER` - Referer header sent to provider (default: `https://weeball.ai`)
 - `PROXY_TITLE` - Custom title header sent to provider (default: `Weeball Proxy`)
 
@@ -168,6 +170,13 @@ bun test
 Tests cover plugin processing, tool calling, streaming, and error handling.
 
 ## Usage with Chat Clients
+
+**Wyvern Chat:**
+1. Set `FALLBACK_API_KEY` in `.env` to your OpenRouter API key
+2. Start Weeball: `bun start`
+3. In Wyvern settings:
+   - API URL: `http://localhost:3000/v1/chat/completions`
+   - API Key: (can be anything, FALLBACK_API_KEY is used)
 
 **JanitorAI:**
 1. Start Weeball: `bun start`
