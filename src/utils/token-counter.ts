@@ -5,10 +5,8 @@ export function countMessageTokens(messages: ChatCompletionMessageParam[]): numb
   let total = 0;
 
   for (const message of messages) {
-    // Count role tokens
     total += encode(message.role).length;
 
-    // Count content tokens
     if (typeof message.content === "string") {
       total += encode(message.content).length;
     } else if (Array.isArray(message.content)) {
@@ -19,7 +17,6 @@ export function countMessageTokens(messages: ChatCompletionMessageParam[]): numb
       }
     }
 
-    // Count tool_calls if present
     if ("tool_calls" in message && message.tool_calls) {
       for (const toolCall of message.tool_calls) {
         total += encode(toolCall.function.name).length;
@@ -27,7 +24,6 @@ export function countMessageTokens(messages: ChatCompletionMessageParam[]): numb
       }
     }
 
-    // Count tool results
     if ("tool_call_id" in message && message.tool_call_id) {
       total += encode(message.tool_call_id).length;
       if (typeof message.content === "string") {
@@ -59,7 +55,6 @@ export function truncateAddedContent(
     return processedMessages;
   }
 
-  // Find added messages (messages not in original)
   const result: ChatCompletionMessageParam[] = [];
   let tokensRemoved = 0;
   const tokensToRemove = addedTokens - maxTokens;
@@ -71,11 +66,9 @@ export function truncateAddedContent(
     if (isOriginalMessage) {
       result.push(processedMessages[i]);
     } else {
-      // This is an added message - check if we should include it
       const messageTokens = countMessageTokens([processedMessages[i]]);
 
       if (tokensRemoved < tokensToRemove) {
-        // Skip this message to reduce tokens
         tokensRemoved += messageTokens;
       } else {
         result.push(processedMessages[i]);

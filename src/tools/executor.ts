@@ -1,10 +1,12 @@
 import type { ToolProcessor } from "../middleware/tool-processor";
 import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions";
+import { logProxyInfo } from "../utils/logger";
 
 export async function executeToolCalls(
   toolCalls: ChatCompletionMessageToolCall[],
   toolProcessor: ToolProcessor
 ) {
+  logProxyInfo("ToolExecutor", `Executing ${toolCalls.length} tool call(s)`);
   const toolResults = [];
 
   for (const toolCall of toolCalls) {

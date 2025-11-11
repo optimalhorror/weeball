@@ -1,5 +1,5 @@
 import type { ContextPlugin } from "./types";
-import { logProxyInfo, logProxyWarn, logProxyError } from "../utils/logger";
+import { logProxyWarn, logProxyError } from "../utils/logger";
 
 export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> {
   const loadedPlugins: ContextPlugin[] = [];
@@ -24,6 +24,5 @@ export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> 
     }
   }
 
-  logProxyInfo("PluginLoader", `Loaded ${loadedPlugins.length} plugin(s) from ${pluginsDir}`);
   return loadedPlugins;
 }

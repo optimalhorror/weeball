@@ -7,7 +7,6 @@ import { makeProviderRequest, isToolUnsupportedError } from "./provider/client";
 import { executeToolCalls } from "./tools/executor";
 import { classifyStreamResponse } from "./utils/stream-parser";
 import { buildResponseHeaders, createErrorResponse } from "./utils/response-builder";
-import { logProxyInfo } from "./utils/logger";
 
 // Global state: Single-user MVP, single model per session.
 // If tools fail once, disabled for entire session until restart.
@@ -42,7 +41,6 @@ export async function handleChatCompletion(
   const toolsAttached = toolCallsEnabled && toolProcessor.hasTools();
   if (toolsAttached) {
     body.tools = toolProcessor.getDefinitions();
-    logProxyInfo("ToolAttachment", `Attached ${body.tools.length} tool(s) to request`);
   }
 
   let providerResponse = await makeProviderRequest(config, authHeader, body);
@@ -51,7 +49,6 @@ export async function handleChatCompletion(
     const errorText = await providerResponse.text();
 
     if (isToolUnsupportedError(errorText)) {
-      logProxyInfo("ToolFallback", "Provider doesn't support tools, disabling for session");
       toolCallsEnabled = false;
       delete body.tools;
       providerResponse = await makeProviderRequest(config, authHeader, body);
@@ -65,10 +62,8 @@ export async function handleChatCompletion(
 
   if (body.stream && toolCallsEnabled && toolProcessor.hasTools()) {
     const streamResult = await classifyStreamResponse(providerResponse.body!);
-    logProxyInfo("ToolDetection", `Stream classified: isToolCall=${streamResult.isToolCall}, toolCalls=${streamResult.toolCalls?.length ?? 0}`);
 
     if (streamResult.isToolCall && streamResult.toolCalls && streamResult.toolCalls.length > 0) {
-      logProxyInfo("ToolExecution", `Executing ${streamResult.toolCalls.length} tool call(s)`);
       const toolResults = await executeToolCalls(streamResult.toolCalls, toolProcessor);
 
       const secondRoundBody: ChatCompletionRequest = {
@@ -100,9 +95,7 @@ export async function handleChatCompletion(
   const responseData = (await providerResponse.json()) as ChatCompletionResponse;
 
   const toolCalls = responseData.choices?.[0]?.message?.tool_calls;
-  logProxyInfo("ToolDetection", `Non-streaming response: tool_calls=${toolCalls?.length ?? 0}`);
   if (toolCalls && toolCalls.length > 0) {
-    logProxyInfo("ToolExecution", `Executing ${toolCalls.length} tool call(s)`);
     const toolResults = await executeToolCalls(toolCalls, toolProcessor);
 
     const secondRoundBody: ChatCompletionRequest = {

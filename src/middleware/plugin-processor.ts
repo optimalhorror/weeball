@@ -1,6 +1,7 @@
 import type { ContextPlugin, Message } from "../plugins/types";
 import { loadPlugins } from "../plugins/loader";
 import { truncateAddedContent } from "../utils/token-counter";
+import { logProxyInfo } from "../utils/logger";
 
 export class PluginProcessor {
   private plugins: ContextPlugin[] = [];
@@ -16,6 +17,11 @@ export class PluginProcessor {
   }
 
   processRequest(messages: Message[]): Message[] {
+    if (this.plugins.length === 0) {
+      return messages;
+    }
+
+    logProxyInfo("PluginProcessor", `Executing ${this.plugins.length} plugin(s)`);
     const originalMessages = messages;
     let modified = messages;
 
@@ -23,7 +29,6 @@ export class PluginProcessor {
       modified = plugin.process(modified);
     }
 
-    // Truncate if plugins added too much content
     return truncateAddedContent(originalMessages, modified, this.maxPluginTokens);
   }
 }

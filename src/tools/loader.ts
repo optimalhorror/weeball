@@ -1,5 +1,5 @@
 import type { Tool, ToolDefinition, ToolExecutor } from "./types";
-import { logProxyInfo, logProxyWarn, logProxyError } from "../utils/logger";
+import { logProxyWarn, logProxyError } from "../utils/logger";
 
 export async function loadTools(toolsDir: string): Promise<Tool[]> {
   const tools: Tool[] = [];
@@ -31,6 +31,5 @@ export async function loadTools(toolsDir: string): Promise<Tool[]> {
     }
   }
 
-  logProxyInfo("ToolLoader", `Loaded ${tools.length} tool(s) from ${toolsDir}`);
   return tools;
 }
