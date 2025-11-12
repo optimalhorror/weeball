@@ -67,7 +67,7 @@ function shouldIncludeLore(entry: LoreEntry, messages: Message[]): boolean {
 }
 
 export default {
-  process(messages: Message[]): Message[] {
+  process(messages: Message[], conversationId: string): Message[] {
     const loreEntries = loadLore();
     const injectedEntries = new Set<string>();
     const modified = [...messages];

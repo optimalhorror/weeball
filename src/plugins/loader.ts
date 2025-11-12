@@ -1,8 +1,8 @@
-import type { ContextPlugin } from "./types";
+import type { Plugin } from "./types";
 import { logProxyWarn, logProxyError } from "../utils/logger";
 
-export async function loadPlugins(pluginsDir: string): Promise<ContextPlugin[]> {
-  const loadedPlugins: ContextPlugin[] = [];
+export async function loadPlugins(pluginsDir: string): Promise<Plugin[]> {
+  const loadedPlugins: Plugin[] = [];
   const glob = new Bun.Glob("*.{js,ts}");
   const files = Array.from(glob.scanSync(pluginsDir))
     .map(f => String(f))

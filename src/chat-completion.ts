@@ -7,6 +7,7 @@ import { makeProviderRequest, isToolUnsupportedError } from "./provider/client";
 import { executeToolCalls } from "./tools/executor";
 import { classifyStreamResponse } from "./utils/stream-parser";
 import { buildResponseHeaders, createErrorResponse } from "./utils/response-builder";
+import { extractConversationId } from "./utils/conversation-id";
 
 // Global state: Single-user MVP, single model per session.
 // If tools fail once, disabled for entire session until restart.
@@ -28,10 +29,12 @@ export async function handleChatCompletion(
     throw e;
   }
 
+  const conversationId = extractConversationId(req);
+
   const body = (await req.json()) as ChatCompletionRequest;
 
   if (body.messages) {
-    body.messages = pluginProcessor.processRequest(body.messages);
+    body.messages = pluginProcessor.processRequest(body.messages, conversationId);
   }
 
   if (config.DEFAULT_MODEL) {
@@ -41,6 +44,15 @@ export async function handleChatCompletion(
   const toolsAttached = toolCallsEnabled && toolProcessor.hasTools();
   if (toolsAttached) {
     body.tools = toolProcessor.getDefinitions();
+
+    // Add game master instruction when tools are available
+    const toolNames = body.tools.map(t => `'${t.function.name}'`).join(", ");
+    const gmInstruction = `[GAME MASTER INSTRUCTION] You are acting as a game master for this roleplay session. You have access to the following tools to help manage the game state: ${toolNames}. Use these tools proactively when appropriate actions occur in the narrative to maintain accurate state tracking. Do not narrate item tracking without calling tools. Tools are essential to keep the state of the game consistent.`;
+
+    body.messages.push({
+      role: "system",
+      content: gmInstruction
+    });
   }
 
   let providerResponse = await makeProviderRequest(config, authHeader, body);
@@ -64,7 +76,7 @@ export async function handleChatCompletion(
     const streamResult = await classifyStreamResponse(providerResponse.body!);
 
     if (streamResult.isToolCall && streamResult.toolCalls && streamResult.toolCalls.length > 0) {
-      const toolResults = await executeToolCalls(streamResult.toolCalls, toolProcessor);
+      const toolResults = await executeToolCalls(streamResult.toolCalls, toolProcessor, conversationId);
 
       const secondRoundBody: ChatCompletionRequest = {
         ...body,
@@ -96,7 +108,7 @@ export async function handleChatCompletion(
 
   const toolCalls = responseData.choices?.[0]?.message?.tool_calls;
   if (toolCalls && toolCalls.length > 0) {
-    const toolResults = await executeToolCalls(toolCalls, toolProcessor);
+    const toolResults = await executeToolCalls(toolCalls, toolProcessor, conversationId);
 
     const secondRoundBody: ChatCompletionRequest = {
       ...body,

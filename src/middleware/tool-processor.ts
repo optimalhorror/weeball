@@ -22,12 +22,12 @@ export class ToolProcessor {
     return this.tools.map(tool => tool.definition);
   }
 
-  async execute(toolName: string, args: any): Promise<string> {
+  async execute(toolName: string, args: any, conversationId: string): Promise<string> {
     const tool = this.toolMap.get(toolName);
     if (!tool) {
       throw new Error(`Tool not found: ${toolName}`);
     }
-    return await tool.executor(args);
+    return await tool.executor(args, conversationId);
   }
 
   hasTools(): boolean {

@@ -1,0 +1,21 @@
+{
+  "type": "function",
+  "function": {
+    "name": "update_item",
+    "description": "Update an existing item in the user's inventory when its description or state changes (e.g., item was modified, consumed partially, quantity changed)",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the item to update"
+        },
+        "description": {
+          "type": "string",
+          "description": "The new description of the item"
+        }
+      },
+      "required": ["name", "description"]
+    }
+  }
+}

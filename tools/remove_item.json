@@ -1,0 +1,17 @@
+{
+  "type": "function",
+  "function": {
+    "name": "remove_item",
+    "description": "IMPORTANT: Call this whenever the user drops, discards, gives away, loses, consumes, sells, or no longer possesses an item. Even simple actions like 'I drop the stone' or 'I eat the apple' should trigger this tool.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the item to remove"
+        }
+      },
+      "required": ["name"]
+    }
+  }
+}

@@ -4,7 +4,8 @@ import { logProxyInfo } from "../utils/logger";
 
 export async function executeToolCalls(
   toolCalls: ChatCompletionMessageToolCall[],
-  toolProcessor: ToolProcessor
+  toolProcessor: ToolProcessor,
+  conversationId: string
 ) {
   logProxyInfo("ToolExecutor", `Executing ${toolCalls.length} tool call(s)`);
   const toolResults = [];
@@ -14,7 +15,7 @@ export async function executeToolCalls(
 
     try {
       const args = JSON.parse(toolCall.function.arguments);
-      const result = await toolProcessor.execute(toolCall.function.name, args);
+      const result = await toolProcessor.execute(toolCall.function.name, args, conversationId);
 
       toolResults.push({
         role: "tool" as const,

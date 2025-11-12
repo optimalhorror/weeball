@@ -2,6 +2,6 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 
 export type Message = ChatCompletionMessageParam;
 
-export interface ContextPlugin {
-  process: (messages: Message[]) => Message[];
+export interface Plugin {
+  process: (messages: Message[], conversationId: string) => Message[];
 }

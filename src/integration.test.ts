@@ -3,7 +3,7 @@ import { createServer } from "./server";
 import { PluginProcessor } from "./middleware/plugin-processor";
 import { ToolProcessor } from "./middleware/tool-processor";
 import type { Config } from "./config/env";
-import type { ContextPlugin } from "./plugins/types";
+import type { Plugin } from "./plugins/types";
 import type { Tool } from "./tools/types";
 
 const mockConfig: Config = {
@@ -23,7 +23,7 @@ describe("Integration: Full passthrough flow", () => {
   });
 
   test("request → req-plugin → mock LLM → response", async () => {
-    const requestPlugin: ContextPlugin = {
+    const requestPlugin: Plugin = {
       process: (messages) => {
         const modified = [...messages];
         const lastUserIndex = modified.map(m => m.role).lastIndexOf("user");
@@ -208,11 +208,14 @@ describe("Integration: Full passthrough flow", () => {
       }
 
       if (callCount === 2) {
-        expect(requestBody.messages.length).toBe(3);
-        expect(requestBody.messages[1].role).toBe("assistant");
-        expect(requestBody.messages[1].tool_calls).toBeDefined();
-        expect(requestBody.messages[2].role).toBe("tool");
-        expect(requestBody.messages[2].content).toContain("Weather in London");
+        expect(requestBody.messages.length).toBe(4);
+        expect(requestBody.messages[0].role).toBe("user");
+        expect(requestBody.messages[1].role).toBe("system");
+        expect(requestBody.messages[1].content).toContain("GAME MASTER INSTRUCTION");
+        expect(requestBody.messages[2].role).toBe("assistant");
+        expect(requestBody.messages[2].tool_calls).toBeDefined();
+        expect(requestBody.messages[3].role).toBe("tool");
+        expect(requestBody.messages[3].content).toContain("Weather in London");
         return Promise.resolve(
           new Response(JSON.stringify(mockFinalResponse), { status: 200 })
         );

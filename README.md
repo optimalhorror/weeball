@@ -37,6 +37,8 @@ Client → Weeball → Plugins → Provider
 - `src/plugins/loader.ts` - Loads plugins from `/plugins`
 - `src/utils/stream-parser.ts` - Smart streaming
 - `src/utils/response-builder.ts` - Response utilities
+- `src/utils/conversation-id.ts` - Conversation ID extraction
+- `src/utils/token-counter.ts` - Plugin token limiting
 - `src/utils/logger.ts` - Logging
 - `src/utils/cors.ts` - CORS headers
 - `src/config/env.ts` - Environment config
@@ -93,7 +95,7 @@ Create a file in `/plugins`:
 import type { Message } from "../src/plugins/types";
 
 export default {
-  process(messages: Message[]): Message[] {
+  process(messages: Message[], conversationId: string): Message[] {
     const modified = [...messages];
     const lastUserIndex = modified.map(m => m.role).lastIndexOf("user");
 
@@ -109,7 +111,7 @@ export default {
 };
 ```
 
-Plugins receive the full conversation history and can modify any message. The example above modifies only the last user message, but you can transform the entire array however you want.
+Plugins receive the conversation history and a `conversationId` string (extracted from request headers). They can modify any message. The example above modifies only the last user message, but you can transform the entire array however you want.
 
 Plugins run in alphabetical order. Name them with prefixes if order matters:
 - `01-add-context.ts`
@@ -132,35 +134,35 @@ This prevents runaway context injection while ensuring the user's actual convers
 
 Create two files in `/tools`:
 
-**Definition (`hello_world.json`):**
+**Definition (`my_tool.json`):**
 ```json
 {
   "type": "function",
   "function": {
-    "name": "hello_world",
-    "description": "Says hello to someone by name",
+    "name": "my_tool",
+    "description": "Does something useful",
     "parameters": {
       "type": "object",
       "properties": {
-        "name": {
+        "arg": {
           "type": "string",
-          "description": "The name of the person to greet"
+          "description": "Some argument"
         }
       },
-      "required": ["name"]
+      "required": ["arg"]
     }
   }
 }
 ```
 
-**Executor (`hello_world.ts`):**
+**Executor (`my_tool.ts`):**
 ```typescript
-export default async function(args: { name: string }): Promise<string> {
-  return `Hello, ${args.name}!`;
+export default async function(args: { arg: string }, conversationId: string): Promise<string> {
+  return `Result: ${args.arg}`;
 }
 ```
 
-Tools are automatically loaded and added to requests. When the LLM calls a tool, Weeball executes it locally and sends the result back for a final response.
+Tools are automatically loaded and added to requests. When the LLM calls a tool, Weeball executes it locally and sends the result back for a final response. The `conversationId` parameter allows tools to maintain per-conversation state.
 
 ## Testing
 
@@ -233,10 +235,28 @@ The plugin and tool system gives you full runtime access. Here are some examples
 
 Plugins have full Bun runtime access (SQLite, fetch, file I/O, WebSocket). Tools are AI-triggered functions. Both are just TypeScript - no framework limitations.
 
+## Examples
+
+The repository includes example implementations in separate directories:
+
+**`/plugins/`** - Example plugins:
+- `01-lorebook.ts` - Trigger-based context injection with depth control
+- `02-inventory.ts` - Inventory display command handler
+
+**`/tools/`** - Example tools:
+- `add_item.ts` - Add item to inventory
+- `remove_item.ts` - Remove item from inventory
+- `update_item.ts` - Update item description
+
+**`/persistence/`** - Example persistence layer:
+- `inventory.ts` - Per-conversation inventory CRUD adapter
+
+These examples demonstrate patterns but are not part of the core proxy. Delete them if you don't need them.
+
 ## Stats
 
-- **~800 lines of code** (excluding tests)
-- **19 source files**
+- **~808 lines of code** (core only, excluding tests/examples)
+- **20 source files**
 - **2 runtime dependencies** (`openai` for types, `gpt-tokenizer` for plugin limits)
 - **4 integration tests**
 
