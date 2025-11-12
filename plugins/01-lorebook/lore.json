@@ -1,0 +1,14 @@
+[
+  {
+    "name": "car",
+    "triggers": ["car", "vehicle", "engine"],
+    "content": "Cars in this setting use engines powered by magic only and emotions.",
+    "depth": 2
+  },
+  {
+    "name": "world_setting",
+    "triggers": [],
+    "content": "This is a fantasy world where technology and magic coexist in unusual ways.",
+    "depth": 0
+  }
+]

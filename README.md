@@ -214,6 +214,7 @@ The plugin and tool system gives you full runtime access. Here are some examples
 - RAG: Vector search your docs and inject relevant context
 - Conversation memory: SQLite-backed long-term memory
 - Game state: Track inventory, quests, character stats
+- Lorebook: Trigger-based world-building context injection
 
 **Automation:**
 - Trigger external APIs based on conversation events
@@ -234,7 +235,7 @@ Plugins have full Bun runtime access (SQLite, fetch, file I/O, WebSocket). Tools
 
 ## Stats
 
-- **~1000 lines of code** (excluding tests)
+- **~800 lines of code** (excluding tests)
 - **19 source files**
 - **2 runtime dependencies** (`openai` for types, `gpt-tokenizer` for plugin limits)
 - **4 integration tests**
