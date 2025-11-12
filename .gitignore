@@ -56,3 +56,6 @@ Thumbs.db
 
 # Test directories
 FEATHERLESS TEST
+
+# Runtime data files (per-conversation state)
+persistence/**/data/*.json

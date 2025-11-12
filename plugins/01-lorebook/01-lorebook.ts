@@ -1,24 +1,5 @@
-import { readFileSync } from "fs";
-import { join } from "path";
 import type { Message } from "../../src/plugins/types";
-
-interface LoreEntry {
-  name: string;
-  triggers: string[];
-  content: string;
-  depth: number;
-}
-
-function loadLore(): LoreEntry[] {
-  try {
-    const lorePath = join(process.cwd(), "plugins", "01-lorebook", "lore.json");
-    const loreData = readFileSync(lorePath, "utf-8");
-    return JSON.parse(loreData);
-  } catch (error) {
-    console.warn("Failed to load lore.json:", error);
-    return [];
-  }
-}
+import { load, type LoreEntry } from "../../persistence/lorebook/lorebook";
 
 function getRecentMessages(messages: Message[], depth: number): Message[] {
   if (depth === 0) return [];
@@ -68,7 +49,7 @@ function shouldIncludeLore(entry: LoreEntry, messages: Message[]): boolean {
 
 export default {
   process(messages: Message[], conversationId: string): Message[] {
-    const loreEntries = loadLore();
+    const loreEntries = load(conversationId);
     const injectedEntries = new Set<string>();
     const modified = [...messages];
 
