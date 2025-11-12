@@ -255,7 +255,7 @@ These examples demonstrate patterns but are not part of the core proxy. Delete t
 
 ## Stats
 
-- **~808 lines of code** (core only, excluding tests/examples)
+- **~900 lines of code** (core only, excluding tests/examples)
 - **20 source files**
 - **2 runtime dependencies** (`openai` for types, `gpt-tokenizer` for plugin limits)
 - **4 integration tests**
