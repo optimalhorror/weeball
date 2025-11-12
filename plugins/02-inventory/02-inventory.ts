@@ -1,5 +1,5 @@
 import type { Message } from "../../src/plugins/types";
-import * as inventory from "../../persistence/inventory";
+import * as inventory from "../../persistence/inventory/inventory";
 
 function formatInventoryForDisplay(items: inventory.InventoryItem[]): string {
   if (items.length === 0) {
