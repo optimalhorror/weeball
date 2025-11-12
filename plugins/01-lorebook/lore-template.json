@@ -1,14 +1,18 @@
 [
   {
     "name": "car",
-    "triggers": ["car", "vehicle", "engine"],
+    "triggers": [
+      "car",
+      "vehicle",
+      "engine"
+    ],
     "content": "Cars in this setting use engines powered by magic only and emotions.",
     "depth": 2
   },
   {
     "name": "world_setting",
     "triggers": [],
-    "content": "This is a fantasy world where technology and magic coexist in unusual ways.",
+    "content": "This is AN ALMOST REAL world. In this setting ALL technology and magic coexist in unusual ways. Override anything you know about the setting and apply this rule regarding magic an tech.",
     "depth": 0
   }
 ]
