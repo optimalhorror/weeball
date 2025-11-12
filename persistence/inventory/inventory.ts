@@ -8,7 +8,7 @@ export interface InventoryItem {
 }
 
 function load(conversationId: string): InventoryItem[] {
-  const path = join(process.cwd(), "persistence", `inventory-${conversationId}.json`);
+  const path = join(process.cwd(), "persistence", "inventory", "data", `inventory-${conversationId}.json`);
 
   if (!existsSync(path)) {
     return [];
@@ -24,7 +24,7 @@ function load(conversationId: string): InventoryItem[] {
 }
 
 function save(conversationId: string, items: InventoryItem[]): void {
-  const path = join(process.cwd(), "persistence", `inventory-${conversationId}.json`);
+  const path = join(process.cwd(), "persistence", "inventory", "data", `inventory-${conversationId}.json`);
 
   try {
     writeFileSync(path, JSON.stringify(items, null, 2), "utf-8");

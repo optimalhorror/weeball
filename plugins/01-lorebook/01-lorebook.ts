@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import type { Message } from "../src/plugins/types";
+import type { Message } from "../../src/plugins/types";
 
 interface LoreEntry {
   name: string;

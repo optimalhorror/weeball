@@ -3,7 +3,7 @@ import { logProxyWarn, logProxyError } from "../utils/logger";
 
 export async function loadTools(toolsDir: string): Promise<Tool[]> {
   const tools: Tool[] = [];
-  const glob = new Bun.Glob("*.json");
+  const glob = new Bun.Glob("**/*.json");
   const definitionFiles = Array.from(glob.scanSync(toolsDir))
     .map(f => String(f))
     .sort();
