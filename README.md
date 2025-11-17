@@ -241,19 +241,22 @@ The repository includes example implementations in separate directories:
 
 **`/plugins/`** - Example plugins:
 - `01-lorebook/` - Trigger-based lore injection with template/runtime system
-- `02-inventory/` - Inventory display command handler
+- `02-inventory/` - Inventory display command handler (`/inventory`)
 - `03-reputation/` - Ensures lorebook loads before reputation system
+- `04-quests/` - Quest tracking command handlers (`/todo`, `/done`)
 
 **`/tools/`** - Example tools:
 - `inventory/` - Add, remove, update items in per-conversation inventory
 - `reputation/` - Track NPC/faction relationship changes
+- `quests/` - Create and complete quests/tasks organically during conversation
 
 **`/persistence/`** - Example persistence layer:
 - `lorebook/` - Template-based runtime lore with per-conversation instances
 - `inventory/` - Per-conversation inventory CRUD adapter
 - `reputation/` - NPC/faction reputation tracking with arc and standing
+- `quests/` - Quest tracking with fuzzy title matching for completion
 
-These examples demonstrate a complete TTRPG system with lorebook, inventory, and reputation tracking. All features use template/runtime pattern for per-conversation state isolation. Delete if you don't need them.
+These examples demonstrate a complete TTRPG system with lorebook, inventory, reputation, and quest tracking. All features use template/runtime pattern for per-conversation state isolation. Delete if you don't need them.
 
 ## Stats
 
