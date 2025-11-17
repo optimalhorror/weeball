@@ -240,18 +240,20 @@ Plugins have full Bun runtime access (SQLite, fetch, file I/O, WebSocket). Tools
 The repository includes example implementations in separate directories:
 
 **`/plugins/`** - Example plugins:
-- `01-lorebook.ts` - Trigger-based context injection with depth control
-- `02-inventory.ts` - Inventory display command handler
+- `01-lorebook/` - Trigger-based lore injection with template/runtime system
+- `02-inventory/` - Inventory display command handler
+- `03-reputation/` - Ensures lorebook loads before reputation system
 
 **`/tools/`** - Example tools:
-- `add_item.ts` - Add item to inventory
-- `remove_item.ts` - Remove item from inventory
-- `update_item.ts` - Update item description
+- `inventory/` - Add, remove, update items in per-conversation inventory
+- `reputation/` - Track NPC/faction relationship changes
 
 **`/persistence/`** - Example persistence layer:
-- `inventory.ts` - Per-conversation inventory CRUD adapter
+- `lorebook/` - Template-based runtime lore with per-conversation instances
+- `inventory/` - Per-conversation inventory CRUD adapter
+- `reputation/` - NPC/faction reputation tracking with arc and standing
 
-These examples demonstrate patterns but are not part of the core proxy. Delete them if you don't need them.
+These examples demonstrate a complete TTRPG system with lorebook, inventory, and reputation tracking. All features use template/runtime pattern for per-conversation state isolation. Delete if you don't need them.
 
 ## Stats
 

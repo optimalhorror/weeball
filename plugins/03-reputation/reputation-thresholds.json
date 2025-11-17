@@ -1,0 +1,11 @@
+[
+  { "min": 75, "perception": "Trusted ally" },
+  { "min": 50, "perception": "Close friend" },
+  { "min": 25, "perception": "Friendly acquaintance" },
+  { "min": 10, "perception": "Acquaintance" },
+  { "min": -10, "perception": "Neutral" },
+  { "min": -25, "perception": "Disliked" },
+  { "min": -50, "perception": "Distrusted" },
+  { "min": -75, "perception": "Enemy" },
+  { "min": -999, "perception": "Sworn enemy" }
+]

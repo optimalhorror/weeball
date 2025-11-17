@@ -57,9 +57,19 @@ export default {
       if (injectedEntries.has(entry.name)) continue;
 
       if (shouldIncludeLore(entry, messages)) {
+        let content = entry.content;
+
+        if (entry.arc) {
+          content += `\n\nHistory with {{user}}: ${entry.arc}`;
+        }
+
+        if (entry.perception) {
+          content += `\n\nCurrent standing: ${entry.perception}`;
+        }
+
         modified.push({
           role: "system",
-          content: entry.content
+          content
         });
         injectedEntries.add(entry.name);
       }

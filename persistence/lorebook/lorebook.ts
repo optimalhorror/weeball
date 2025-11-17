@@ -6,6 +6,10 @@ export interface LoreEntry {
   triggers: string[];
   content: string;
   depth: number;
+  type?: "npc" | "faction" | "other";
+  arc?: string;
+  perception?: string;
+  standing?: number;
 }
 
 function getTemplatePath(): string {

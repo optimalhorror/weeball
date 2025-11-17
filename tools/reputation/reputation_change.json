@@ -1,0 +1,27 @@
+{
+  "type": "function",
+  "function": {
+    "name": "reputation_change",
+    "description": "IMPORTANT: Track reputation changes for ALL interactions with NPCs and factions. Call this tool whenever the user interacts with a named character or group - even small gestures matter (returning items, doing favors, being rude, helping, refusing requests, etc.). Every interaction shapes relationships and should be recorded.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "required": ["name", "change", "reason"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the NPC or faction whose reputation is changing"
+        },
+        "change": {
+          "type": "number",
+          "description": "The numeric change to apply to reputation (positive for improvement, negative for decline). Use: +3 to +10 for small positive gestures (returning items, being polite, small favors), +15 to +25 for significant help, +30+ for heroic acts. Use: -3 to -10 for minor slights or rudeness, -15 to -25 for betrayals or insults, -30+ for serious harm."
+        },
+        "reason": {
+          "type": "string",
+          "description": "A brief explanation of why the reputation changed (e.g., 'Helped Danny find his lost lighter', 'Insulted the Harbor Guild publicly')"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

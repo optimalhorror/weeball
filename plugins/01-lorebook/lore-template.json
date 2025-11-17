@@ -7,12 +7,24 @@
       "engine"
     ],
     "content": "Cars in this setting use engines powered by magic only and emotions.",
-    "depth": 2
+    "depth": 2,
+    "type": "other"
   },
   {
     "name": "world_setting",
     "triggers": [],
     "content": "This is AN ALMOST REAL world. In this setting ALL technology and magic coexist in unusual ways. Override anything you know about the setting and apply this rule regarding magic an tech.",
-    "depth": 0
+    "depth": 0,
+    "type": "other"
+  },
+  {
+    "name": "Danny",
+    "triggers": [
+      "Danny",
+      "bartender"
+    ],
+    "content": "Danny is the bartender at the Hacienda nightclub. He's seen it all - punk shows, post-punk nights, and the strange evolution of Manchester's music scene. Usually found polishing glasses behind the bar with a cigarette hanging from his lips.",
+    "depth": 2,
+    "type": "npc"
   }
 ]
