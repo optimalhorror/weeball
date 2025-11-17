@@ -22,6 +22,8 @@ export async function loadPlugins(pluginsDir: string): Promise<Plugin[]> {
       const plugin = pluginModule.default || pluginModule;
 
       if (typeof plugin.process === "function") {
+        const pluginName = file.split('/')[0];
+        plugin.name = pluginName;
         loadedPlugins.push(plugin);
       } else {
         logProxyWarn("PluginLoader", `Skipping ${file}: missing process function`);

@@ -1,0 +1,27 @@
+{
+  "type": "function",
+  "function": {
+    "name": "quest_complete",
+    "description": "IMPORTANT: Mark a quest as completed when the user finishes a task. Call this whenever the user accomplishes something from their active quests - delivered an item, helped someone, finished a job, resolved a request, etc. You don't need an exact title match - a partial match works (e.g., 'lighter' will match 'Find Danny's lighter'). After completing a quest, consider if it warrants calling reputation_change separately.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "required": ["title", "resolution"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title or partial title of the quest to complete (fuzzy matching is supported)"
+        },
+        "resolution": {
+          "type": "string",
+          "description": "Detailed description of how the quest was completed, including the quest giver's reaction and any consequences. Be narrative and specific (e.g., 'Cleared rats with a broom. Merchant was grateful but horrified by the methods and mess left behind.')"
+        },
+        "reward": {
+          "type": "string",
+          "description": "Optional: What reward was given, if any? Can be items, money, information, favors, or anything else (e.g., '50 coins and a bottle of wine', 'A map to the hidden cellar', 'Danny's eternal gratitude')"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "type": "function",
+  "function": {
+    "name": "quest_add",
+    "description": "CRITICAL: Create a new quest/task whenever ANYONE (NPC or user) mentions something that needs to be done. This includes: favors, errands, requests, goals, tasks, objectives, jobs, missions - anything from 'get me a drink' to 'save the kingdom'. Track ALL requests and tasks, no matter how small. If someone asks for help or mentions needing something done, ALWAYS call this tool immediately.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "required": ["title", "giver", "description"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Short, clear title for the quest (e.g., 'Find Danny's lighter', 'Clear the cellar rats', 'Get the merchant a drink')"
+        },
+        "giver": {
+          "type": "string",
+          "description": "Who gave this task? Name of the NPC or 'Self' if the user set their own goal"
+        },
+        "description": {
+          "type": "string",
+          "description": "What needs to be done? Include any relevant details about the task"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

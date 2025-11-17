@@ -26,7 +26,14 @@ export class PluginProcessor {
     let modified = messages;
 
     for (const plugin of this.plugins) {
+      const beforeLength = modified.length;
       modified = plugin.process(modified, conversationId);
+      const afterLength = modified.length;
+
+      if (beforeLength !== afterLength || JSON.stringify(messages) !== JSON.stringify(modified)) {
+        const pluginName = plugin.name || "unknown";
+        logProxyInfo("PluginProcessor", `Plugin [${pluginName}] modified messages`);
+      }
     }
 
     return truncateAddedContent(originalMessages, modified, this.maxPluginTokens);

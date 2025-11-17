@@ -3,5 +3,6 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 export type Message = ChatCompletionMessageParam;
 
 export interface Plugin {
+  name?: string;
   process: (messages: Message[], conversationId: string) => Message[];
 }

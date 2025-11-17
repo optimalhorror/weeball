@@ -3,8 +3,10 @@
   "function": {
     "name": "add_item",
     "description": "IMPORTANT: Call this whenever the user picks up, takes, pockets, grabs, acquires, receives, finds, buys, crafts, or otherwise obtains any item. Even simple actions like 'I pocket the ashtray' or 'I take the keys' should trigger this tool.",
+    "strict": true,
     "parameters": {
       "type": "object",
+      "required": ["name", "description", "obtained"],
       "properties": {
         "name": {
           "type": "string",
@@ -19,7 +21,7 @@
           "description": "How or where the item was obtained (e.g., 'found in dungeon', 'quest reward', 'purchased from merchant')"
         }
       },
-      "required": ["name", "description", "obtained"]
+      "additionalProperties": false
     }
   }
 }

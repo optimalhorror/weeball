@@ -13,9 +13,12 @@ export async function executeToolCalls(
   for (const toolCall of toolCalls) {
     if (toolCall.type !== "function") continue;
 
+    const toolName = toolCall.function.name;
+    logProxyInfo("ToolExecutor", `Calling tool [${toolName}]`);
+
     try {
       const args = JSON.parse(toolCall.function.arguments);
-      const result = await toolProcessor.execute(toolCall.function.name, args, conversationId);
+      const result = await toolProcessor.execute(toolName, args, conversationId);
 
       toolResults.push({
         role: "tool" as const,
